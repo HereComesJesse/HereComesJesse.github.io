@@ -19,8 +19,7 @@
 
 <h2 id="加载配置类"><a href="#加载配置类" class="headerlink" title="加载配置类"></a>加载配置类</h2><p>==SpringFactoriesLoader.loadFactoryNames()== 扫描所有Jar包类路径下的：</p>
 <p>​    classLoader.getResources(“<strong>META-INF/spring.factories</strong>“)，遍历得到其url，然后包装成Properties的形式返回。</p>
-<p>​    </p>
-<p><img src="C:\Users\Jes\AppData\Roaming\Typora\typora-user-images\image-20200803110049751.png" alt="image-20200803110049751"></p>
+<p><img src="https://github.com/HereComesJesse/blog_image/blob/master/image-20200803110049751.png?raw=true" alt="image-20200803110049751"></p>
 <p>==传回上层方法，从properties中获取到EnableAutoConfiguration.class(类)类名对应的值，最终将这些beans交给spring容器。==</p>
 <p>每一个这样的xxxAutoConfiguration类都是容器中的一个组件，都加入到容器中，用他们来做自动配置。</p>
 <h2 id="每一个自动配置类，进行自动配置功能"><a href="#每一个自动配置类，进行自动配置功能" class="headerlink" title="每一个自动配置类，进行自动配置功能"></a>每一个自动配置类，进行自动配置功能</h2><p><strong>以org.springframework.boot.autoconfigure.web.servlet.HttpEncodingAutoConfiguration为例（解决乱码问题）</strong></p>
