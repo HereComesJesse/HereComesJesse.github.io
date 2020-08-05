@@ -3,7 +3,281 @@
             <div class="card-content">
                 <h3 class="menu-label">Hot Recommend</h3><span id="index_hot_div">Loading...Wait a Minute!</span>
             </div>
-        </div><div class="card"><article class="card-content article" role="article"><div class="article-meta size-small is-uppercase level is-mobile"><div class="level-left"><i class="far fa-calendar-plus"> </i>2020-08-03  <a class="commentCountImg" href="/2020/08/03/%E5%8D%9A%E5%AE%A2%E6%90%AD%E5%BB%BA%E6%97%A5%E5%BF%97/#comment-container"><span class="display-none-class">55e2067b28b4c6d10bd5e31d1c1122e2</span><i class="far fa-comment-dots"></i> <span class="commentCount" id="55e2067b28b4c6d10bd5e31d1c1122e2">99+</span>  </a><span class="level-item"><i class="far fa-clock"> </i>fast  <i class="fas fa-pencil-alt"> </i>0.0 k</span></div></div><h1 class="title is-3 is-size-4-mobile"><a class="link-muted" href="/2020/08/03/%E5%8D%9A%E5%AE%A2%E6%90%AD%E5%BB%BA%E6%97%A5%E5%BF%97/">博客搭建日志</a></h1><div class="content"><h1 id="NOGFEXCEPTION搭建日志"><a href="#NOGFEXCEPTION搭建日志" class="headerlink" title="NOGFEXCEPTION搭建日志"></a>NOGFEXCEPTION搭建日志</h1><ul>
+        </div><div class="card"><article class="card-content article" role="article"><div class="article-meta size-small is-uppercase level is-mobile"><div class="level-left"><i class="far fa-calendar-plus"> </i>2020-08-05  <a class="commentCountImg" href="/2020/08/05/SELECT%E3%80%81POLL%E3%80%81EPOLL%E7%9A%84%E5%8C%BA%E5%88%AB/#comment-container"><span class="display-none-class">79651b507834c84a4f704811a135b886</span><i class="far fa-comment-dots"></i> <span class="commentCount" id="79651b507834c84a4f704811a135b886">99+</span>  </a><span class="level-item"><i class="far fa-clock"> </i>28 m  <i class="fas fa-pencil-alt"> </i>4.2 k</span></div></div><h1 class="title is-3 is-size-4-mobile"><a class="link-muted" href="/2020/08/05/SELECT%E3%80%81POLL%E3%80%81EPOLL%E7%9A%84%E5%8C%BA%E5%88%AB/">SELECT、POLL、EPOLL的区别</a></h1><div class="content"><h1 id="SELECT、POLL、EPOLL的区别"><a href="#SELECT、POLL、EPOLL的区别" class="headerlink" title="SELECT、POLL、EPOLL的区别"></a>SELECT、POLL、EPOLL的区别</h1><p>(1)select==&gt;时间复杂度O(n)</p>
+<p>它仅仅知道了，有I/O事件发生了，却并不知道是哪那几个流（可能有一个，多个，甚至全部），我们只能无差别轮询所有流，找出能读出数据，或者写入数据的流，对他们进行操作。所以<strong>select具有O(n)的无差别轮询复杂度</strong>，同时处理的流越多，无差别轮询时间就越长。</p>
+<p>(2)poll==&gt;时间复杂度O(n)</p>
+<p>poll本质上和select没有区别，它将用户传入的数组拷贝到内核空间，然后查询每个fd对应的设备状态， <strong>但是它没有最大连接数的限制</strong>，原因是它是基于链表来存储的.</p>
+<p>(3)epoll==&gt;时间复杂度O(1)</p>
+<p><strong>epoll可以理解为event poll</strong>，不同于忙轮询和无差别轮询，epoll会把哪个流发生了怎样的I/O事件通知我们。所以我们说epoll实际上是<strong>事件驱动（每个事件关联上fd）</strong>的，此时我们对这些流的操作都是有意义的。<strong>（复杂度降低到了O(1)）</strong></p>
+<p>select，poll，epoll都是IO多路复用的机制。I/O多路复用就通过一种机制，可以监视多个描述符，一旦某个描述符就绪（一般是读就绪或者写就绪），能够通知程序进行相应的读写操作。<strong>但select，poll，epoll本质上都是同步I/O，因为他们都需要在读写事件就绪后自己负责进行读写，也就是说这个读写过程是阻塞的</strong>，而异步I/O则无需自己负责进行读写，异步I/O的实现会负责把数据从内核拷贝到用户空间。 </p>
+<p>epoll跟select都能提供多路I/O复用的解决方案。在现在的Linux内核里有都能够支持，其中epoll是Linux所特有，而select则应该是POSIX所规定，一般操作系统均有实现</p>
+<p><strong>select：</strong></p>
+<p>select本质上是通过设置或者检查存放fd标志位的数据结构来进行下一步处理。这样所带来的缺点是：</p>
+<p>1、 单个进程可监视的fd数量被限制，即能监听端口的大小有限。</p>
+<p>   一般来说这个数目和系统内存关系很大，具体数目可以cat /proc/sys/fs/file-max察看。32位机默认是1024个。64位机默认是2048.</p>
+<p>2、 对socket进行扫描时是线性扫描，即采用轮询的方法，效率较低：</p>
+<p>​    当套接字比较多的时候，每次select()都要通过遍历FD_SETSIZE个Socket来完成调度,不管哪个Socket是活跃的,都遍历一遍。这会浪费很多CPU时间。如果能给套接字注册某个回调函数，当他们活跃时，自动完成相关操作，那就避免了轮询，这正是epoll与kqueue做的。</p>
+<p>3、需要维护一个用来存放大量fd的数据结构，这样会使得用户空间和内核空间在传递该结构时复制开销大</p>
+<p><strong>poll：</strong></p>
+<p>poll本质上和select没有区别，它将用户传入的数组拷贝到内核空间，然后查询每个fd对应的设备状态，如果设备就绪则在设备等待队列中加入一项并继续遍历，如果遍历完所有fd后没有发现就绪设备，则挂起当前进程，直到设备就绪或者主动超时，被唤醒后它又要再次遍历fd。这个过程经历了多次无谓的遍历。</p>
+<p><strong>它没有最大连接数的限制</strong>，原因是它是基于链表来存储的，但是同样有一个缺点：</p>
+<p>1、大量的fd的数组被整体复制于用户态和内核地址空间之间，而不管这样的复制是不是有意义。          </p>
+<p>2、poll还有一个特点是“水平触发”，如果报告了fd后，没有被处理，那么下次poll时会再次报告该fd。</p>
+<p><strong>epoll:</strong></p>
+<p>epoll有EPOLLLT和EPOLLET两种触发模式，LT是默认的模式，ET是“高速”模式。LT模式下，只要这个fd还有数据可读，每次 epoll_wait都会返回它的事件，提醒用户程序去操作，而在ET（边缘触发）模式中，它只会提示一次，直到下次再有数据流入之前都不会再提示了，无 论fd中是否还有数据可读。所以在ET模式下，read一个fd的时候一定要把它的buffer读光，也就是说一直读到read的返回值小于请求值，或者 遇到EAGAIN错误。还有一个特点是，epoll使用“事件”的就绪通知方式，通过epoll_ctl注册fd，一旦该fd就绪，内核就会采用类似callback的回调机制来激活该fd，epoll_wait便可以收到通知。</p>
+<p><strong>epoll为什么要有EPOLLET触发模式？</strong></p>
+<p>如果采用EPOLLLT模式的话，系统中一旦有大量你不需要读写的就绪文件描述符，它们每次调用epoll_wait都会返回，这样会大大降低处理程序检索自己关心的就绪文件描述符的效率.。而采用EPOLLET这种边沿触发模式的话，当被监控的文件描述符上有可读写事件发生时，epoll_wait()会通知处理程序去读写。如果这次没有把数据全部读写完(如读写缓冲区太小)，那么下次调用epoll_wait()时，它不会通知你，也就是它只会通知你一次，直到该文件描述符上出现第二次可读写事件才会通知你！！！<strong>这种模式比水平触发效率高，系统不会充斥大量你不关心的就绪文件描述符</strong></p>
+<p><strong>epoll的优点：</strong></p>
+<p>1、<strong>没有最大并发连接的限制，能打开的FD的上限远大于1024（1G的内存上能监听约10万个端口）</strong>；<br><strong>2、效率提升，不是轮询的方式，不会随着FD数目的增加效率下降。只有活跃可用的FD才会调用callback函数；</strong><br><strong>即Epoll最大的优点就在于它只管你“活跃”的连接，而跟连接总数无关，因此在实际的网络环境中，Epoll的效率就会远远高于select和poll。</strong></p>
+<p>3、 内存拷贝，利用mmap()文件映射内存加速与内核空间的消息传递；即epoll使用mmap减少复制开销。<br><strong>select、poll、epoll 区别总结：</strong></p>
+<p>1、支持一个进程所能打开的最大连接数</p>
+<p>select</p>
+<p>单个进程所能打开的最大连接数有FD_SETSIZE宏定义，其大小是32个整数的大小（在32位的机器上，大小就是32<em>32，同理64位机器上FD_SETSIZE为32</em>64），当然我们可以对进行修改，然后重新编译内核，但是性能可能会受到影响，这需要进一步的测试。</p>
+<p>poll</p>
+<p>poll本质上和select没有区别，但是它没有最大连接数的限制，原因是它是基于链表来存储的</p>
+<p>epoll</p>
+<p>虽然连接数有上限，但是很大，1G内存的机器上可以打开10万左右的连接，2G内存的机器可以打开20万左右的连接</p>
+<p>2、FD剧增后带来的IO效率问题</p>
+<p>select</p>
+<p>因为每次调用时都会对连接进行线性遍历，所以随着FD的增加会造成遍历速度慢的“线性下降性能问题”。</p>
+<p>poll</p>
+<p>同上</p>
+<p>epoll</p>
+<p>因为epoll内核中实现是根据每个fd上的callback函数来实现的，只有活跃的socket才会主动调用callback，所以在活跃socket较少的情况下，使用epoll没有前面两者的线性下降的性能问题，但是所有socket都很活跃的情况下，可能会有性能问题。</p>
+<p>3、 消息传递方式</p>
+<p>select</p>
+<p>内核需要将消息传递到用户空间，都需要内核拷贝动作</p>
+<p>poll</p>
+<p>同上</p>
+<p>epoll</p>
+<p>epoll通过内核和用户空间共享一块内存来实现的。</p>
+<p><strong>总结：</strong></p>
+<p><strong>综上，在选择select，p**</strong>oll，epoll时要根据具体的使用场合以及这三种方式的自身特点。**</p>
+<p><strong>1、表面上看epoll的性能最好，但是在连接数少并且连接都十分活跃的情况下，select和poll的性能可能比epoll好，毕竟epoll的通知机制需要很多函数回调。</strong></p>
+<p><strong>2、select低效是因为每次它都需要轮询。但低效也是相对的，视情况而定，也可通过良好的设计改善</strong> </p>
+<p>关于这三种IO多路复用的用法，前面三篇总结写的很清楚，并用服务器回射echo程序进行了测试。连接如下所示：</p>
+<p>select：<a href="https://www.cnblogs.com/Anker/p/3258674.html">IO多路复用之select总结</a></p>
+<p>poll：<a href="https://www.cnblogs.com/Anker/p/3261006.html">O多路复用之poll总结</a></p>
+<p>epoll：<a href="https://www.cnblogs.com/Anker/p/3263780.html">IO多路复用之epoll总结</a></p>
+<p>　　今天对这三种IO多路复用进行对比，参考网上和书上面的资料，整理如下：</p>
+<p><strong>1、select实现</strong></p>
+<p><strong>select的调用过程如下所示：</strong></p>
+<p><img src="https://images2018.cnblogs.com/blog/137084/201806/137084-20180611142415772-1018872947.png" alt="img"></p>
+<p>（1）使用copy_from_user从用户空间拷贝fd_set到内核空间</p>
+<p>（2）注册回调函数__pollwait</p>
+<p>（3）遍历所有fd，调用其对应的poll方法（对于socket，这个poll方法是sock_poll，sock_poll根据情况会调用到tcp_poll,udp_poll或者datagram_poll）</p>
+<p>（4）以tcp_poll为例，其核心实现就是__pollwait，也就是上面注册的回调函数。</p>
+<p>（5）__pollwait的主要工作就是把current（当前进程）挂到设备的等待队列中，不同的设备有不同的等待队列，对于tcp_poll来说，其等待队列是sk-&gt;sk_sleep（注意把进程挂到等待队列中并不代表进程已经睡眠了）。在设备收到一条消息（网络设备）或填写完文件数据（磁盘设备）后，会唤醒设备等待队列上睡眠的进程，这时current便被唤醒了。</p>
+<p>（6）poll方法返回时会返回一个描述读写操作是否就绪的mask掩码，根据这个mask掩码给fd_set赋值。</p>
+<p>（7）如果遍历完所有的fd，还没有返回一个可读写的mask掩码，则会调用schedule_timeout是调用select的进程（也就是current）进入睡眠。当设备驱动发生自身资源可读写后，会唤醒其等待队列上睡眠的进程。如果超过一定的超时时间（schedule_timeout指定），还是没人唤醒，则调用select的进程会重新被唤醒获得CPU，进而重新遍历fd，判断有没有就绪的fd。</p>
+<p>（8）把fd_set从内核空间拷贝到用户空间。</p>
+<p><strong>总结：</strong></p>
+<p><strong>select的几大缺点：</strong></p>
+<p><strong>（1）每次调用select，都需要把fd集合从用户态拷贝到内核态，这个开销在fd很多时会很大</strong></p>
+<p><strong>（2）同时每次调用select都需要在内核遍历传递进来的所有fd，这个开销在fd很多时也很大</strong></p>
+<p><strong>（3）select支持的文件描述符数量太小了，默认是1024</strong></p>
+<p><strong>2 poll实现</strong></p>
+<p>　　poll的实现和select非常相似，只是描述fd集合的方式不同，poll使用pollfd结构而不是select的fd_set结构，其他的都差不多,管理多个描述符也是进行轮询，根据描述符的状态进行处理，<strong>但是poll没有最大文件描述符数量的限制</strong>。poll和select同样存在一个缺点就是，包含大量文件描述符的数组被整体复制于用户态和内核的地址空间之间，而不论这些文件描述符是否就绪，它的开销随着文件描述符数量的增加而线性增大。</p>
+<p><strong>3、epoll</strong></p>
+<p>　　epoll既然是对select和poll的改进，就应该能避免上述的三个缺点。那epoll都是怎么解决的呢？在此之前，我们先看一下epoll和select和poll的调用接口上的不同，select和poll都只提供了一个函数——select或者poll函数。而epoll提供了三个函数，epoll_create,epoll_ctl和epoll_wait，epoll_create是创建一个epoll句柄；epoll_ctl是注册要监听的事件类型；epoll_wait则是等待事件的产生。</p>
+<p>　　对于第一个缺点，epoll的解决方案在epoll_ctl函数中。每次注册新的事件到epoll句柄中时（在epoll_ctl中指定EPOLL_CTL_ADD），会把所有的fd拷贝进内核，而不是在epoll_wait的时候重复拷贝。epoll保证了每个fd在整个过程中只会拷贝一次。</p>
+<p>　　对于第二个缺点，epoll的解决方案不像select或poll一样每次都把current轮流加入fd对应的设备等待队列中，而只在epoll_ctl时把current挂一遍（这一遍必不可少）并为每个fd指定一个回调函数，当设备就绪，唤醒等待队列上的等待者时，就会调用这个回调函数，而这个回调函数会把就绪的fd加入一个就绪链表）。epoll_wait的工作实际上就是在这个就绪链表中查看有没有就绪的fd（利用schedule_timeout()实现睡一会，判断一会的效果，和select实现中的第7步是类似的）。</p>
+<p>　　对于第三个缺点，epoll没有这个限制，它所支持的FD上限是最大可以打开文件的数目，这个数字一般远大于2048,举个例子,在1GB内存的机器上大约是10万左右，具体数目可以cat /proc/sys/fs/file-max察看,一般来说这个数目和系统内存关系很大。</p>
+<p><strong>总结：</strong></p>
+<p>（1）select，poll实现需要自己不断轮询所有fd集合，直到设备就绪，期间可能要睡眠和唤醒多次交替。而epoll其实也需要调用epoll_wait不断轮询就绪链表，期间也可能多次睡眠和唤醒交替，但是它是设备就绪时，调用回调函数，把就绪fd放入就绪链表中，并唤醒在epoll_wait中进入睡眠的进程。虽然都要睡眠和交替，但是select和poll在“醒着”的时候要遍历整个fd集合，而epoll在“醒着”的时候只要判断一下就绪链表是否为空就行了，这节省了大量的CPU时间。这就是回调机制带来的性能提升。</p>
+<p>（2）select，poll每次调用都要把fd集合从用户态往内核态拷贝一次，并且要把current往设备等待队列中挂一次，而epoll只要一次拷贝，而且把current往等待队列上挂也只挂一次（在epoll_wait的开始，注意这里的等待队列并不是设备等待队列，只是一个epoll内部定义的等待队列）。这也能节省不少的开销。 </p>
+<p>文章写的通俗易懂，原文转至：<br>作者：<a href="https://home.cnblogs.com/u/aspirant/">aspirant</a><br>链接：<a href="https://www.cnblogs.com/aspirant/p/9166944.html">https://www.cnblogs.com/aspirant/p/9166944.html</a><br>来源：cnblogs</p>
+</div><div class="index-category-tag">  <hr></div></article></div><div class="card"><article class="card-content article" role="article"><div class="article-meta size-small is-uppercase level is-mobile"><div class="level-left"><i class="far fa-calendar-plus"> </i>2020-08-05  <a class="commentCountImg" href="/2020/08/05/%E5%88%B0%E5%BA%95%E4%BB%80%E4%B9%88%E6%98%AF%E2%80%9CIO%20Block%E2%80%9D/#comment-container"><span class="display-none-class">8c57694cf52681a9df7556a958efc74b</span><i class="far fa-comment-dots"></i> <span class="commentCount" id="8c57694cf52681a9df7556a958efc74b">99+</span>  </a><span class="level-item"><i class="far fa-clock"> </i>an hour  <i class="fas fa-pencil-alt"> </i>6.8 k</span></div></div><h1 class="title is-3 is-size-4-mobile"><a class="link-muted" href="/2020/08/05/%E5%88%B0%E5%BA%95%E4%BB%80%E4%B9%88%E6%98%AF%E2%80%9CIO%20Block%E2%80%9D/">到底什么是“IO Block”</a></h1><div class="content"><h1 id="BIO和NIO详解"><a href="#BIO和NIO详解" class="headerlink" title="BIO和NIO详解"></a>BIO和NIO详解</h1><h2 id="到底什么是“IO-Block”"><a href="#到底什么是“IO-Block”" class="headerlink" title="到底什么是“IO Block”"></a>到底什么是“IO Block”</h2><p>很多人说BIO不好，会“block”，但到底什么是IO的Block呢？考虑下面两种情况：</p>
+<ul>
+<li>用系统调用<code>read</code>从socket里读取一段数据</li>
+<li>用系统调用<code>read</code>从一个磁盘文件读取一段数据到内存</li>
+</ul>
+<p>如果你的直觉告诉你，这两种都算“Block”，那么很遗憾，你的理解与Linux不同。Linux认为：</p>
+<ul>
+<li>对于第一种情况，算作block，因为Linux无法知道网络上对方是否会发数据。如果没数据发过来，对于调用<code>read</code>的程序来说，就只能“等”。</li>
+<li>对于第二种情况，<strong>不算做block</strong>。</li>
+</ul>
+<p>是的，对于磁盘文件IO，Linux总是不视作Block。</p>
+<p>你可能会说，这不科学啊，磁盘读写偶尔也会因为硬件而卡壳啊，怎么能不算Block呢？但实际就是不算。</p>
+<blockquote>
+<p>一个解释是，所谓“Block”是指操作系统可以预见这个Block会发生才会主动Block。例如当读取TCP连接的数据时，如果发现Socket buffer里没有数据就可以确定定对方还没有发过来，于是Block；而对于普通磁盘文件的读写，也许磁盘运作期间会抖动，会短暂暂停，但是操作系统无法预见这种情况，只能视作不会Block，照样执行。</p>
+</blockquote>
+<p>基于这个基本的设定，在讨论IO时，一定要严格区分网络IO和磁盘文件IO。NIO和后文讲到的IO多路复用只对网络IO有意义。</p>
+<blockquote>
+<p>严格的说，O_NONBLOCK和IO多路复用，对标准输入输出描述符、管道和FIFO也都是有效的。但本文侧重于讨论高性能网络服务器下各种IO的含义和关系，所以本文做了简化，只提及网络IO和磁盘文件IO两种情况。</p>
+</blockquote>
+<p>本文先着重讲一下网络IO。</p>
+<h1 id="BIO"><a href="#BIO" class="headerlink" title="BIO"></a>BIO</h1><p>有了Block的定义，就可以讨论BIO和NIO了。BIO是Blocking IO的意思。在类似于网络中进行<code>read</code>, <code>write</code>, <code>connect</code>一类的系统调用时会被卡住。</p>
+<p>举个例子，当用<code>read</code>去读取网络的数据时，是无法预知对方是否已经发送数据的。因此在收到数据之前，能做的只有等待，直到对方把数据发过来，或者等到网络超时。</p>
+<p>对于单线程的网络服务，这样做就会有卡死的问题。因为当等待时，整个线程会被挂起，无法执行，也无法做其他的工作。</p>
+<blockquote>
+<p>顺便说一句，这种Block是不会影响同时运行的其他程序（进程）的，因为现代操作系统都是多任务的，任务之间的切换是抢占式的。这里Block只是指Block当前的进程。</p>
+</blockquote>
+<p>于是，网络服务为了同时响应多个并发的网络请求，必须实现为多线程的。每个线程处理一个网络请求。线程数随着并发连接数线性增长。这的确能奏效。实际上2000年之前很多网络服务器就是这么实现的。但这带来两个问题：</p>
+<ul>
+<li>线程越多，Context Switch就越多，而Context Switch是一个比较重的操作，会无谓浪费大量的CPU。</li>
+<li>每个线程会占用一定的内存作为线程的栈。比如有1000个线程同时运行，每个占用1MB内存，就占用了1个G的内存。</li>
+</ul>
+<blockquote>
+<p>也许现在看来1GB内存不算什么，现在服务器上百G内存的配置现在司空见惯了。但是倒退20年，1G内存是很金贵的。并且，尽管现在通过使用大内存，可以轻易实现并发1万甚至10万的连接。但是水涨船高，如果是要单机撑1千万的连接呢？</p>
+</blockquote>
+<p>问题的关键在于，当调用<code>read</code>接受网络请求时，有数据到了就用，没数据到时，实际上是可以干别的。使用大量线程，仅仅是因为Block发生，没有其他办法。</p>
+<p>当然你可能会说，是不是可以弄个线程池呢？这样既能并发的处理请求，又不会产生大量线程。但这样会限制最大并发的连接数。比如你弄4个线程，那么最大4个线程都Block了就没法响应更多请求了。</p>
+<p>要是操作IO接口时，操作系统能够总是直接告诉有没有数据，而不是Block去等就好了。于是，NIO登场。</p>
+<h1 id="NIO"><a href="#NIO" class="headerlink" title="NIO"></a>NIO</h1><p>NIO是指将IO模式设为“Non-Blocking”模式。在Linux下，一般是这样：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">setnonblocking</span><span class="params">(<span class="keyword">int</span> fd)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">int</span> flags = fcntl(fd, F_GETFL, <span class="number">0</span>);</span><br><span class="line">    fcntl(fd, F_SETFL, flags | O_NONBLOCK);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>再强调一下，以上操作只对socket对应的文件描述符有意义；对磁盘文件的文件描述符做此设置总会成功，但是会直接被忽略。</p>
+</blockquote>
+<p>这时，BIO和NIO的区别是什么呢？</p>
+<p>在BIO模式下，调用read，如果发现没数据已经到达，就会Block住。</p>
+<p>在NIO模式下，调用read，如果发现没数据已经到达，就会立刻返回-1, 并且errno被设为<code>EAGAIN</code>。</p>
+<blockquote>
+<p>在有些文档中写的是会返回<code>EWOULDBLOCK</code>。实际上，在Linux下<code>EAGAIN</code>和<code>EWOULDBLOCK</code>是一样的，即<code>#define EWOULDBLOCK EAGAIN</code></p>
+</blockquote>
+<p>于是，一段NIO的代码，大概就可以写成这个样子。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">timespec</span> <span class="title">sleep_interval</span>&#123;</span>.tv_sec = <span class="number">0</span>, .tv_nsec = <span class="number">1000</span>&#125;;</span><br><span class="line"><span class="keyword">ssize_t</span> nbytes;</span><br><span class="line"><span class="keyword">while</span> (<span class="number">1</span>) &#123;</span><br><span class="line">    <span class="comment">/* 尝试读取 */</span></span><br><span class="line">    <span class="keyword">if</span> ((nbytes = <span class="built_in">read</span>(fd, buf, <span class="keyword">sizeof</span>(buf))) &lt; <span class="number">0</span>) &#123;</span><br><span class="line">        <span class="keyword">if</span> (errno == EAGAIN) &#123; <span class="comment">// 没数据到</span></span><br><span class="line">            perror(<span class="string">"nothing can be read"</span>);</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            perror(<span class="string">"fatal error"</span>);</span><br><span class="line">            <span class="built_in">exit</span>(EXIT_FAILURE);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123; <span class="comment">// 有数据</span></span><br><span class="line">        process_data(buf, nbytes);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 处理其他事情，做完了就等一会，再尝试</span></span><br><span class="line">    nanosleep(sleep_interval, <span class="literal">NULL</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这段代码很容易理解，就是轮询，不断的尝试有没有数据到达，有了就处理，没有(得到<code>EWOULDBLOCK</code>或者<code>EAGAIN</code>)就等一小会再试。这比之前BIO好多了，起码程序不会被卡死了。</p>
+<p>但这样会带来两个新问题：</p>
+<ul>
+<li>如果有大量文件描述符都要等，那么就得一个一个的read。这会带来大量的Context Switch（<code>read</code>是系统调用，每调用一次就得在用户态和核心态切换一次）</li>
+<li>休息一会的时间不好把握。这里是要猜多久之后数据才能到。等待时间设的太长，程序响应延迟就过大；设的太短，就会造成过于频繁的重试，干耗CPU而已。</li>
+</ul>
+<p>要是操作系统能一口气告诉程序，哪些数据到了就好了。</p>
+<p>于是IO多路复用被搞出来解决这个问题。</p>
+<h1 id="IO多路复用"><a href="#IO多路复用" class="headerlink" title="IO多路复用"></a>IO多路复用</h1><p>IO多路复用（IO Multiplexing) 是这么一种机制：程序注册一组socket文件描述符给操作系统，表示“我要监视这些fd是否有IO事件发生，有了就告诉程序处理”。</p>
+<p>IO多路复用是要和NIO一起使用的。尽管在操作系统级别，NIO和IO多路复用是两个相对独立的事情。NIO仅仅是指IO API总是能立刻返回，不会被Blocking；而IO多路复用仅仅是操作系统提供的一种便利的通知机制。操作系统并不会强制这俩必须得一起用——你可以用NIO，但不用IO多路复用，就像上一节中的代码；也可以只用IO多路复用 + BIO，这时效果还是当前线程被卡住。但是，<strong>IO多路复用和NIO是要配合一起使用才有实际意义</strong>。因此，在使用IO多路复用之前，请总是先把fd设为<code>O_NONBLOCK</code>。</p>
+<p>对IO多路复用，还存在一些常见的误解，比如：</p>
+<ul>
+<li><p><strong>❌IO多路复用是指多个数据流共享同一个Socket</strong>。其实IO多路复用说的是多个Socket，只不过操作系统是一起监听他们的事件而已。</p>
+<blockquote>
+<p>多个数据流共享同一个TCP连接的场景的确是有，比如Http2 Multiplexing就是指Http2通讯中中多个逻辑的数据流共享同一个TCP连接。但这与IO多路复用是完全不同的问题。</p>
+</blockquote>
+</li>
+<li><p><strong>❌IO多路复用是NIO，所以总是不Block的</strong>。其实IO多路复用的关键API调用(<code>select</code>，<code>poll</code>，<code>epoll_wait</code>）总是Block的，正如下文的例子所讲。</p>
+</li>
+<li><p>❌<strong>IO多路复用和NIO一起减少了IO</strong>。实际上，IO本身（网络数据的收发）无论用不用IO多路复用和NIO，都没有变化。请求的数据该是多少还是多少；网络上该传输多少数据还是多少数据。IO多路复用和NIO一起仅仅是解决了调度的问题，避免CPU在这个过程中的浪费，使系统的瓶颈更容易触达到网络带宽，而非CPU或者内存。要提高IO吞吐，还是提高硬件的容量（例如，用支持更大带宽的网线、网卡和交换机）和依靠并发传输（例如HDFS的数据多副本并发传输）。</p>
+</li>
+</ul>
+<p>操作系统级别提供了一些接口来支持IO多路复用，最老掉牙的是<code>select</code>和<code>poll</code>。</p>
+<h2 id="select"><a href="#select" class="headerlink" title="select"></a>select</h2><p><code>select</code>长这样：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">int select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout);</span><br></pre></td></tr></table></figure>
+
+<p>它接受3个文件描述符的数组，分别监听读取(<code>readfds</code>)，写入(<code>writefds</code>)和异常(<code>expectfds</code>)事件。那么一个 IO多路复用的代码大概是这样：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">timeval</span> <span class="title">tv</span> = &#123;</span>.tv_sec = <span class="number">1</span>, .tv_usec = <span class="number">0</span>&#125;;</span><br><span class="line"> </span><br><span class="line"><span class="keyword">ssize_t</span> nbytes;</span><br><span class="line"><span class="keyword">while</span>(<span class="number">1</span>) &#123;</span><br><span class="line">    FD_ZERO(&amp;read_fds);</span><br><span class="line">    setnonblocking(fd1);</span><br><span class="line">    setnonblocking(fd2);</span><br><span class="line">    FD_SET(fd1, &amp;read_fds);</span><br><span class="line">    FD_SET(fd2, &amp;read_fds);</span><br><span class="line">    <span class="comment">// 把要监听的fd拼到一个数组里，而且每次循环都得重来一次...</span></span><br><span class="line">    <span class="keyword">if</span> (select(FD_SETSIZE, &amp;read_fds, <span class="literal">NULL</span>, <span class="literal">NULL</span>, &amp;tv) &lt; <span class="number">0</span>) &#123; <span class="comment">// block住，直到有事件到达</span></span><br><span class="line">        perror(<span class="string">"select出错了"</span>);</span><br><span class="line">        <span class="built_in">exit</span>(EXIT_FAILURE);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; FD_SETSIZE; i++) &#123;</span><br><span class="line">        <span class="keyword">if</span> (FD_ISSET(i, &amp;read_fds)) &#123;</span><br><span class="line">            <span class="comment">/* 检测到第[i]个读取fd已经收到了，这里假设buf总是大于到达的数据，所以可以一次read完 */</span></span><br><span class="line">            <span class="keyword">if</span> ((nbytes = <span class="built_in">read</span>(i, buf, <span class="keyword">sizeof</span>(buf))) &gt;= <span class="number">0</span>) &#123;</span><br><span class="line">                process_data(nbytes, buf);</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                perror(<span class="string">"读取出错了"</span>);</span><br><span class="line">                <span class="built_in">exit</span>(EXIT_FAILURE);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>首先，为了<code>select</code>需要构造一个fd数组（这里为了简化，没有构造要监听写入和异常事件的fd数组）。之后，用<code>select</code>监听了<code>read_fds</code>中的多个socket的读取时间。调用<code>select</code>后，程序会Block住，直到一个事件发生了，或者等到最大1秒钟(<code>tv</code>定义了这个时间长度）就返回。之后，需要遍历所有注册的fd，挨个检查哪个fd有事件到达(<code>FD_ISSET</code>返回true)。如果是，就说明数据已经到达了，可以读取fd了。读取后就可以进行数据的处理。</p>
+<p><code>select</code>有一些发指的缺点：</p>
+<ul>
+<li><code>select</code>能够支持的最大的fd数组的长度是1024。这对要处理高并发的web服务器是不可接受的。</li>
+<li>fd数组按照监听的事件分为了3个数组，为了这3个数组要分配3段内存去构造，而且每次调用<code>select</code>前都要重设它们（因为<code>select</code>会改这3个数组)；调用<code>select</code>后，这3数组要从用户态复制一份到内核态；事件到达后，要遍历这3数组。很不爽。</li>
+<li><code>select</code>返回后要挨个遍历fd，找到被“SET”的那些进行处理。这样比较低效。</li>
+<li><code>select</code>是无状态的，即每次调用<code>select</code>，内核都要重新检查所有被注册的fd的状态。<code>select</code>返回后，这些状态就被返回了，内核不会记住它们；到了下一次调用，内核依然要重新检查一遍。于是查询的效率很低。</li>
+</ul>
+<h2 id="poll"><a href="#poll" class="headerlink" title="poll"></a>poll</h2><p><code>poll</code>与<code>select</code>类似于。它大概长这样：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">poll</span><span class="params">(struct pollfd *fds, <span class="keyword">nfds_t</span> nfds, <span class="keyword">int</span> timeout)</span></span>;</span><br></pre></td></tr></table></figure>
+
+<p><code>poll</code>的代码例子和<code>select</code>差不多，因此也就不赘述了。有意思的是<code>poll</code>这个单词的意思是“轮询”，所以很多中文资料都会提到对IO进行“轮询”。</p>
+<blockquote>
+<p>上面说的select和下文说的epoll本质上都是轮询。</p>
+</blockquote>
+<p><code>poll</code>优化了<code>select</code>的一些问题。比如不再有3个数组，而是1个<code>polldfd</code>结构的数组了，并且也不需要每次重设了。数组的个数也没有了1024的限制。但其他的问题依旧：</p>
+<ul>
+<li>依然是无状态的，性能的问题与<code>select</code>差不多一样；</li>
+<li>应用程序仍然无法很方便的拿到那些“有事件发生的fd“，还是需要遍历所有注册的fd。</li>
+</ul>
+<p>目前来看，高性能的web服务器都不会使用<code>select</code>和<code>poll</code>。他们俩存在的意义仅仅是“兼容性”，因为很多操作系统都实现了这两个系统调用。</p>
+<p>如果是追求性能的话，在BSD/macOS上提供了kqueue api；在Salorias中提供了/dev/poll（可惜该操作系统已经凉凉)；而在Linux上提供了epoll api。它们的出现彻底解决了<code>select</code>和<code>poll</code>的问题。Java NIO，nginx等在对应的平台的上都是使用这些api实现。</p>
+<p>因为大部分情况下我会用Linux做服务器，所以下文以Linux epoll为例子来解释多路复用是怎么工作的。</p>
+<h1 id="用epoll实现的IO多路复用"><a href="#用epoll实现的IO多路复用" class="headerlink" title="用epoll实现的IO多路复用"></a>用epoll实现的IO多路复用</h1><p>epoll是Linux下的IO多路复用的实现。这里单开一章是因为它非常有代表性，并且Linux也是目前最广泛被作为服务器的操作系统。细致的了解epoll对整个IO多路复用的工作原理非常有帮助。</p>
+<p>与<code>select</code>和<code>poll</code>不同，要使用epoll是需要先创建一下的。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">int</span> epfd = epoll_create(<span class="number">10</span>);</span><br></pre></td></tr></table></figure>
+
+<p><code>epoll_create</code>在内核层创建了一个数据表，接口会返回一个“epoll的文件描述符”指向这个表。注意，接口参数是一个表达要监听事件列表的长度的数值。但不用太在意，因为epoll内部随后会根据事件注册和事件注销动态调整epoll中表格的大小。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/4662107-db96d72fcff779c7.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/286/format/webp" alt="img"></p>
+<p>epoll创建</p>
+<p>为什么epoll要创建一个用文件描述符来指向的表呢？这里有两个好处：</p>
+<ul>
+<li>epoll是有状态的，不像<code>select</code>和<code>poll</code>那样每次都要重新传入所有要监听的fd，这避免了很多无谓的数据复制。epoll的数据是用接口<code>epoll_ctl</code>来管理的（增、删、改）。</li>
+<li>epoll文件描述符在进程被fork时，子进程是可以继承的。这可以给对多进程共享一份epoll数据，实现并行监听网络请求带来便利。但这超过了本文的讨论范围，就此打住。</li>
+</ul>
+<p>epoll创建后，第二步是使用<code>epoll_ctl</code>接口来注册要监听的事件。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">epoll_ctl</span><span class="params">(<span class="keyword">int</span> epfd, <span class="keyword">int</span> op, <span class="keyword">int</span> fd, struct epoll_event *event)</span></span>;</span><br></pre></td></tr></table></figure>
+
+<p>其中第一个参数就是上面创建的<code>epfd</code>。第二个参数<code>op</code>表示如何对文件名进行操作，共有3种。</p>
+<ul>
+<li><code>EPOLL_CTL_ADD</code> - 注册一个事件</li>
+<li><code>EPOLL_CTL_DEL</code> - 取消一个事件的注册</li>
+<li><code>EPOLL_CTL_MOD</code> - 修改一个事件的注册</li>
+</ul>
+<p>第三个参数是要操作的fd，这里必须是支持NIO的fd（比如socket）。</p>
+<p>第四个参数是一个<code>epoll_event</code>的类型的数据，表达了注册的事件的具体信息。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="keyword">union</span> epoll_data &#123;</span><br><span class="line">    <span class="keyword">void</span>    *ptr;</span><br><span class="line">    <span class="keyword">int</span>      fd;</span><br><span class="line">    <span class="keyword">uint32_t</span> u32;</span><br><span class="line">    <span class="keyword">uint64_t</span> u64;</span><br><span class="line">&#125; <span class="keyword">epoll_data_t</span>;</span><br><span class="line"> </span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">epoll_event</span> &#123;</span></span><br><span class="line">    <span class="keyword">uint32_t</span>     events;    <span class="comment">/* Epoll events */</span></span><br><span class="line">    <span class="keyword">epoll_data_t</span> data;      <span class="comment">/* User data variable */</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>比方说，想关注一个fd1的读取事件事件，并采用边缘触发(下文会解释什么是边缘触发），大概要这么写：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">epoll_data</span> <span class="title">ev</span>;</span></span><br><span class="line">ev.events = EPOLLIN | EPOLLET; <span class="comment">// EPOLLIN表示读事件；EPOLLET表示边缘触发</span></span><br><span class="line">ev.data.fd = fd1;</span><br></pre></td></tr></table></figure>
+
+<p>通过<code>epoll_ctl</code>就可以灵活的注册/取消注册/修改注册某个fd的某些事件。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/4662107-6605e852cb10a9af.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/286/format/webp" alt="img"></p>
+<p>管理fd事件注册</p>
+<p>第三步，使用<code>epoll_wait</code>来等待事件的发生。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">epoll_wait</span><span class="params">(<span class="keyword">int</span> epfd, struct epoll_event *evlist, <span class="keyword">int</span> maxevents, <span class="keyword">int</span> timeout)</span></span>;</span><br></pre></td></tr></table></figure>
+
+<p>特别留意，这一步是”block”的。只有当注册的事件至少有一个发生，或者<code>timeout</code>达到时，该调用才会返回。这与<code>select</code>和<code>poll</code>几乎一致。但不一样的地方是<code>evlist</code>，它是<code>epoll_wait</code>的返回数组，里面<strong>只包含那些被触发的事件对应的fd</strong>，而不是像<code>select</code>和<code>poll</code>那样返回所有注册的fd。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/4662107-158b40d37dcb03df.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/286/format/webp" alt="img"></p>
+<p>监听fd事件</p>
+<p>综合起来，一段比较完整的epoll代码大概是这样的。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">define</span> MAX_EVENTS 10</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">epoll_event</span> <span class="title">ev</span>, <span class="title">events</span>[<span class="title">MAX_EVENTS</span>];</span></span><br><span class="line"><span class="keyword">int</span> nfds, epfd, fd1, fd2;</span><br><span class="line"> </span><br><span class="line"><span class="comment">// 假设这里有两个socket，fd1和fd2，被初始化好。</span></span><br><span class="line"><span class="comment">// 设置为non blocking</span></span><br><span class="line">setnonblocking(fd1);</span><br><span class="line">setnonblocking(fd2);</span><br><span class="line"> </span><br><span class="line"><span class="comment">// 创建epoll</span></span><br><span class="line">epfd = epoll_create(MAX_EVENTS);</span><br><span class="line"><span class="keyword">if</span> (epollfd == <span class="number">-1</span>) &#123;</span><br><span class="line">    perror(<span class="string">"epoll_create1"</span>);</span><br><span class="line">    <span class="built_in">exit</span>(EXIT_FAILURE);</span><br><span class="line">&#125;</span><br><span class="line"> </span><br><span class="line"><span class="comment">//注册事件</span></span><br><span class="line">ev.events = EPOLLIN | EPOLLET;</span><br><span class="line">ev.data.fd = fd1;</span><br><span class="line"><span class="keyword">if</span> (epoll_ctl(epollfd, EPOLL_CTL_ADD, fd1, &amp;ev) == <span class="number">-1</span>) &#123;</span><br><span class="line">    perror(<span class="string">"epoll_ctl: error register fd1"</span>);</span><br><span class="line">    <span class="built_in">exit</span>(EXIT_FAILURE);</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">if</span> (epoll_ctl(epollfd, EPOLL_CTL_ADD, fd2, &amp;ev) == <span class="number">-1</span>) &#123;</span><br><span class="line">    perror(<span class="string">"epoll_ctl: error register fd2"</span>);</span><br><span class="line">    <span class="built_in">exit</span>(EXIT_FAILURE);</span><br><span class="line">&#125;</span><br><span class="line"> </span><br><span class="line"><span class="comment">// 监听事件</span></span><br><span class="line"><span class="keyword">for</span> (;;) &#123;</span><br><span class="line">    nfds = epoll_wait(epdf, events, MAX_EVENTS, <span class="number">-1</span>);</span><br><span class="line">    <span class="keyword">if</span> (nfds == <span class="number">-1</span>) &#123;</span><br><span class="line">        perror(<span class="string">"epoll_wait"</span>);</span><br><span class="line">        <span class="built_in">exit</span>(EXIT_FAILURE);</span><br><span class="line">    &#125;</span><br><span class="line"> </span><br><span class="line">    <span class="keyword">for</span> (n = <span class="number">0</span>; n &lt; nfds; ++n) &#123; <span class="comment">// 处理所有发生IO事件的fd</span></span><br><span class="line">        process_event(events[n].data.fd);</span><br><span class="line">        <span class="comment">// 如果有必要，可以利用epoll_ctl继续对本fd注册下一次监听，然后重新epoll_wait</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>此外，<a href="https://link.jianshu.com/?t=http://man7.org/linux/man-pages/man7/epoll.7.html">epoll的手册</a> 中也有一个简单的例子。</p>
+<p>所有的基于IO多路复用的代码都会遵循这样的写法：注册——监听事件——处理——再注册，无限循环下去。</p>
+<h1 id="epoll的优势"><a href="#epoll的优势" class="headerlink" title="epoll的优势"></a>epoll的优势</h1><p>为什么epoll的性能比<code>select</code>和<code>poll</code>要强呢？ <code>select</code>和<code>poll</code>每次都需要把完成的fd列表传入到内核，迫使内核每次必须从头扫描到尾。而epoll完全是反过来的。epoll在内核的数据被建立好了之后，每次某个被监听的fd一旦有事件发生，内核就直接标记之。<code>epoll_wait</code>调用时，会尝试直接读取到当时已经标记好的fd列表，如果没有就会进入等待状态。</p>
+<p>同时，<code>epoll_wait</code>直接只返回了被触发的fd列表，这样上层应用写起来也轻松愉快，再也不用从大量注册的fd中筛选出有事件的fd了。</p>
+<p>简单说就是<code>select</code>和<code>poll</code>的代价是**”O(所有注册事件fd的数量)”<strong>，而epoll的代价是</strong>“O(发生事件fd的数量)”**。于是，高性能网络服务器的场景特别适合用epoll来实现——因为大多数网络服务器都有这样的模式：同时要监听大量（几千，几万，几十万甚至更多）的网络连接，但是短时间内发生的事件非常少。</p>
+<p>但是，假设发生事件的fd的数量接近所有注册事件fd的数量，那么epoll的优势就没有了，其性能表现会和<code>poll</code>和<code>select</code>差不多。</p>
+<p>epoll除了性能优势，还有一个优点——同时支持水平触发(Level Trigger)和边沿触发(Edge Trigger)。</p>
+<h1 id="水平触发和边沿触发"><a href="#水平触发和边沿触发" class="headerlink" title="水平触发和边沿触发"></a>水平触发和边沿触发</h1><p>默认情况下，epoll使用水平触发，这与<code>select</code>和<code>poll</code>的行为完全一致。在水平触发下，epoll顶多算是一个“跑得更快的poll”。</p>
+<p>而一旦在注册事件时使用了<code>EPOLLET</code>标记（如上文中的例子），那么将其视为边沿触发（或者有地方叫边缘触发，一个意思）。那么到底什么水平触发和边沿触发呢？</p>
+<p>考虑下图中的例子。有两个socket的fd——fd1和fd2。我们设定监听f1的“水平触发读事件“，监听fd2的”边沿触发读事件“。我们使用在时刻t1，使用<code>epoll_wait</code>监听他们的事件。在时刻t2时，两个fd都到了100bytes数据，于是在时刻t3, <code>epoll_wait</code>返回了两个fd进行处理。在t4，我们故意不读取所有的数据出来，只各自读50bytes。然后在t5重新注册两个事件并监听。在t6时，只有fd1会返回，因为fd1里的数据没有读完，仍然处于“被触发”状态；而fd2不会被返回，因为没有新数据到达。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/4662107-173d7a3fa4b61ca0.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/450/format/webp" alt="img"></p>
+<p>水平触发和边沿触发</p>
+<p>这个例子很明确的显示了水平触发和边沿触发的区别。</p>
+<ul>
+<li><p>水平触发只关心文件描述符中是否还有没完成处理的数据，如果有，不管怎样<code>epoll_wait</code>，总是会被返回。简单说——水平触发代表了一种“状态”。</p>
+</li>
+<li><p>边沿触发只关心文件描述符是否有<strong>新</strong>的事件产生，如果有，则返回；如果返回过一次，不管程序是否处理了，只要没有新的事件产生，<code>epoll_wait</code>不会再认为这个fd被“触发”了。简单说——边沿触发代表了一个“事件”。</p>
+<blockquote>
+<p>那么边沿触发怎么才能迫使新事件产生呢？一般需要反复调用<code>read</code>/<code>write</code>这样的IO接口，直到得到了<code>EAGAIN</code>错误码，再去尝试<code>epoll_wait</code>才有可能得到下次事件。</p>
+</blockquote>
+</li>
+</ul>
+<p>那么为什么需要边沿触发呢？</p>
+<p>边沿触发把如何处理数据的控制权完全交给了开发者，提供了巨大的灵活性。比如，读取一个http的请求，开发者可以决定只读取http中的headers数据就停下来，然后根据业务逻辑判断是否要继续读（比如需要调用另外一个服务来决定是否继续读）。而不是次次被socket尚有数据的状态烦扰；写入数据时也是如此。比如希望将一个资源A写入到socket。当socket的buffer充足时，<code>epoll_wait</code>会返回这个fd是准备好的。但是资源A此时不一定准备好。如果使用水平触发，每次经过<code>epoll_wait</code>也总会被打扰。在边沿触发下，开发者有机会更精细的定制这里的控制逻辑。</p>
+<p>但不好的一面时，边沿触发也大大的提高了编程的难度。一不留神，可能就会miss掉处理部分socket数据的机会。如果没有很好的根据<code>EAGAIN</code>来“重置”一个fd，就会造成此fd永远没有新事件产生，进而导致饿死相关的处理代码。</p>
+<h1 id="再来思考一下什么是“Block”"><a href="#再来思考一下什么是“Block”" class="headerlink" title="再来思考一下什么是“Block”"></a>再来思考一下什么是“Block”</h1><p>上面的所有介绍都在围绕如何让网络IO不会被Block。但是网络IO处理仅仅是整个数据处理中的一部分。如果你留意到上文例子中的“处理事件”代码，就会发现这里可能是有问题的。</p>
+<ul>
+<li>处理代码有可能需要读写文件，可能会很慢，从而干扰整个程序的效率；</li>
+<li>处理代码有可能是一段复杂的数据计算，计算量很大的话，就会卡住整个执行流程；</li>
+<li>处理代码有bug，可能直接进入了一段死循环……</li>
+</ul>
+<p>这时你会发现，这里的Block和本文之初讲的<code>O_NONBLOCK</code>是不同的事情。在一个网络服务中，如果处理程序的延迟远远小于网络IO，那么这完全不成问题。但是如果处理程序的延迟已经大到无法忽略了，就会对整个程序产生很大的影响。这时IO多路复用已经不是问题的关键。</p>
+<p>试分析和比较下面两个场景：</p>
+<ul>
+<li>web proxy。程序通过IO多路复用接收到了请求之后，直接转发给另外一个网络服务。</li>
+<li>web server。程序通过IO多路复用接收到了请求之后，需要读取一个文件，并返回其内容。</li>
+</ul>
+<p>它们有什么不同？它们的瓶颈可能出在哪里？</p>
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>小结一下本文：</p>
+<ul>
+<li>对于socket的文件描述符才有所谓BIO和NIO。</li>
+<li>多线程+BIO模式会带来大量的资源浪费，而NIO+IO多路复用可以解决这个问题。</li>
+<li>在Linux下，基于epoll的IO多路复用是解决这个问题的最佳方案；epoll相比<code>select</code>和<code>poll</code>有很大的性能优势和功能优势，适合实现高性能网络服务。</li>
+</ul>
+<p>但是IO多路复用仅仅是解决了一部分问题，另外一部分问题如何解决呢？且听下回分解。</p>
+<p>文章写的通俗易懂，原文转至：<br>作者：大宽宽<br>链接：<a href="https://www.jianshu.com/p/ef418ccf2f7d">https://www.jianshu.com/p/ef418ccf2f7d</a><br>来源：简书</p>
+</div><div class="index-category-tag">  <hr></div></article></div><div class="card"><article class="card-content article" role="article"><div class="article-meta size-small is-uppercase level is-mobile"><div class="level-left"><i class="far fa-calendar-plus"> </i>2020-08-03  <a class="commentCountImg" href="/2020/08/03/%E5%8D%9A%E5%AE%A2%E6%90%AD%E5%BB%BA%E6%97%A5%E5%BF%97/#comment-container"><span class="display-none-class">55e2067b28b4c6d10bd5e31d1c1122e2</span><i class="far fa-comment-dots"></i> <span class="commentCount" id="55e2067b28b4c6d10bd5e31d1c1122e2">99+</span>  </a><span class="level-item"><i class="far fa-clock"> </i>fast  <i class="fas fa-pencil-alt"> </i>0.0 k</span></div></div><h1 class="title is-3 is-size-4-mobile"><a class="link-muted" href="/2020/08/03/%E5%8D%9A%E5%AE%A2%E6%90%AD%E5%BB%BA%E6%97%A5%E5%BF%97/">博客搭建日志</a></h1><div class="content"><h1 id="NOGFEXCEPTION搭建日志"><a href="#NOGFEXCEPTION搭建日志" class="headerlink" title="NOGFEXCEPTION搭建日志"></a>NOGFEXCEPTION搭建日志</h1><ul>
 <li><input disabled="" type="checkbox"> 2020-08-01 博客初步搭建成功</li>
 <li><input disabled="" type="checkbox"> 2020-08-02尝试接入gittalk，未成功</li>
 <li><input disabled="" type="checkbox"> github仓库中未对Category搭建相关配置</li>
@@ -44,14 +318,14 @@
 <p>​    3） 再看这个自动配置类中到底配置了哪些组件，只要存在我们项目所需要的组件，就无须再配置。     </p>
 <p>​    4） 给容器中自动配置类添加组件的时候，会从properties类中自动获取某些属性，我们可以在配置文件中指定这些属性的值。</p>
 <p>​    5）若不存在，可自己写我们所需要的配置类。==xxxAutoConfiguration自动配置类 + xxxProperties封装配置文件中的相关属性。==</p>
-</div><div class="index-category-tag">  <hr></div></article></div></div><div class="column column-left is-4-tablet is-4-desktop is-3-widescreen  order-1 is-sticky"><!--!--><div class="card widget"><div class="card-content"><nav class="level"><div class="level-item has-text-centered flex-shrink-1"><div><figure class="image is-128x128 mx-auto mb-2"><img class="is-rounded" src="/img/avatar.png" alt="Jesse HE"></figure><p class="title is-size-4 is-block line-height-inherit">Jesse HE</p><p class="is-size-6 is-block">一切有为法，如梦幻泡影</p><p class="is-size-6 is-flex justify-content-center"><i class="fas fa-map-marker-alt mr-1"></i><span>上海市</span></p></div></div></nav><nav class="level is-mobile"><div class="level-item has-text-centered is-marginless"><div><p class="heading">Posts</p><a href="/archives"><p class="title">2</p></a></div></div><div class="level-item has-text-centered is-marginless"><div><p class="heading">Categories</p><a href="/categories"><p class="title">0</p></a></div></div><div class="level-item has-text-centered is-marginless"><div><p class="heading">Tags</p><a href="/tags"><p class="title">0</p></a></div></div></nav><div class="level"><a class="level-item button is-primary is-rounded" href="https://weibo.com/comeOnJJ666" target="_blank" rel="noopener">Follow</a></div><div class="level is-mobile"><a class="level-item button is-transparent is-white is-marginless" target="_blank" rel="noopener" title="Github" href="https://github.com/herecomesjesse"><i class="fab fa-github"></i></a><a class="level-item button is-transparent is-white is-marginless" target="_blank" rel="noopener" title="Weibo" href="https://weibo.com/comeOnJJ666"><i class="fab fa-weibo"></i></a><a class="level-item button is-transparent is-white is-marginless" target="_blank" rel="noopener" title="Email" href="mailto:jesse_he06@163.com"><i class="fa fa-envelope"></i></a><a class="level-item button is-transparent is-white is-marginless" target="_blank" rel="noopener" title="Next" href="##"><i class="fab fa-dribbble"></i></a><a class="level-item button is-transparent is-white is-marginless" target="_blank" rel="noopener" title="RSS" href="/atom.xml"><i class="fas fa-rss"></i></a></div><div><hr><p id="hitokoto">:D 一言句子获取中...</p><script type="text/javascript" defer>function getYiyan(){
+</div><div class="index-category-tag">  <hr></div></article></div></div><div class="column column-left is-4-tablet is-4-desktop is-3-widescreen  order-1 is-sticky"><!--!--><div class="card widget"><div class="card-content"><nav class="level"><div class="level-item has-text-centered flex-shrink-1"><div><figure class="image is-128x128 mx-auto mb-2"><img class="is-rounded" src="/img/avatar.png" alt="Jesse HE"></figure><p class="title is-size-4 is-block line-height-inherit">Jesse HE</p><p class="is-size-6 is-block">一切有为法，如梦幻泡影</p><p class="is-size-6 is-flex justify-content-center"><i class="fas fa-map-marker-alt mr-1"></i><span>上海市</span></p></div></div></nav><nav class="level is-mobile"><div class="level-item has-text-centered is-marginless"><div><p class="heading">Posts</p><a href="/archives"><p class="title">4</p></a></div></div><div class="level-item has-text-centered is-marginless"><div><p class="heading">Categories</p><a href="/categories"><p class="title">0</p></a></div></div><div class="level-item has-text-centered is-marginless"><div><p class="heading">Tags</p><a href="/tags"><p class="title">0</p></a></div></div></nav><div class="level"><a class="level-item button is-primary is-rounded" href="https://weibo.com/comeOnJJ666" target="_blank" rel="noopener">Follow</a></div><div class="level is-mobile"><a class="level-item button is-transparent is-white is-marginless" target="_blank" rel="noopener" title="Github" href="https://github.com/herecomesjesse"><i class="fab fa-github"></i></a><a class="level-item button is-transparent is-white is-marginless" target="_blank" rel="noopener" title="Weibo" href="https://weibo.com/comeOnJJ666"><i class="fab fa-weibo"></i></a><a class="level-item button is-transparent is-white is-marginless" target="_blank" rel="noopener" title="Email" href="mailto:jesse_he06@163.com"><i class="fa fa-envelope"></i></a><a class="level-item button is-transparent is-white is-marginless" target="_blank" rel="noopener" title="Next" href="##"><i class="fab fa-dribbble"></i></a><a class="level-item button is-transparent is-white is-marginless" target="_blank" rel="noopener" title="RSS" href="/atom.xml"><i class="fas fa-rss"></i></a></div><div><hr><p id="hitokoto">:D 一言句子获取中...</p><script type="text/javascript" defer>function getYiyan(){
                                 $.getJSON("https://v1.hitokoto.cn/", function (data) {
                                 if(data){
                                     $('#hitokoto').html("");
                                     $('#hitokoto').append("<strong style='color: #3273dc;'>"+data.hitokoto+"</strong>"+
                                     "<p>"+"From《"+data.from+"》</p><p>Provider-"+data.creator+"</p>");
                                 }});}
-                                $(function (){getYiyan();$('#hitokoto').click(function(){getYiyan();})});</script></div></div></div><div class="column-right-shadow is-hidden-widescreen"></div></div><div class="column column-right is-4-tablet is-4-desktop is-3-widescreen is-hidden-touch is-hidden-desktop-only order-3"><div class="card widget"><div class="card-content"><h3 class="menu-label">Latest Comment</h3><span class="body_hot_comment">Loading...Wait a Minute!</span></div></div><div class="card widget"><div class="card-content"><h3 class="menu-label">Recent</h3><article class="media"><div class="media-content size-small"><p><time dateTime="2020-08-03T06:32:31.854Z">2020-08-03</time></p><p class="title is-6"><a class="link-muted" href="/2020/08/03/%E5%8D%9A%E5%AE%A2%E6%90%AD%E5%BB%BA%E6%97%A5%E5%BF%97/">博客搭建日志</a></p><p class="is-uppercase"></p></div></article><article class="media"><div class="media-content size-small"><p><time dateTime="2020-08-03T06:12:05.429Z">2020-08-03</time></p><p class="title is-6"><a class="link-muted" href="/2020/08/03/Spring%20Boot%E8%87%AA%E5%8A%A8%E9%85%8D%E7%BD%AE%E5%8E%9F%E7%90%86/">Spring Boot自动配置原理</a></p><p class="is-uppercase"></p></div></article></div></div><!--!--><div class="card widget"><div class="card-content"><div class="menu"><h3 class="menu-label">Archives</h3><ul class="menu-list"><li><a class="level is-mobile is-marginless" href="/archives/2020/08/"><span class="level-start"><span class="level-item">August 2020</span></span><span class="level-end"><span class="level-item tag">2</span></span></a></li></ul></div></div></div><!--!--><div class="card widget"><div class="card-content"><div class="menu"><h3 class="menu-label">Subscribe to Updates</h3><form action="https://feedburner.google.com/fb/a/mailverify" method="post" target="popupwindow" onsubmit="window.open(&#039;https://feedburner.google.com/fb/a/mailverify?uri=removeifFeedsId&#039;,&#039;popupwindow&#039;,&#039;scrollbars=yes,width=550,height=520&#039;);return true"><input type="hidden" value="removeifFeedsId" name="uri"><input type="hidden" name="loc" value="en_US"><div class="field has-addons"><div class="control has-icons-left is-expanded"><input class="input" name="email" type="email" placeholder="Email"><span class="icon is-small is-left"><i class="fas fa-envelope"></i></span></div><div class="control"><input class="button is-primary" type="submit" value="Subscribe"></div></div><p class="help">输入邮箱开始订阅，更博后邮件通知！</p></form></div></div></div></div></div></div></section><footer class="footer"><div class="container"><div class="level"><div class="level-start"><a class="footer-logo is-block mb-2" href="/"><img src="/img/logo.png" alt="NOGFEXCEPTION" height="28"></a><p class="size-small"><span>&copy; 2020 Jesse HE</span>  Powered by <a href="https://hexo.io/" target="_blank">Hexo</a> &amp; <a href="https://github.com/ppoffice/hexo-theme-icarus" target="_blank">Icarus</a>,Modify by <a href="https://github.com/removeif/hexo-theme-amazing" target="_blank">removeif</a> <br><span>© 版权说明：[本网站所有内容均收集于互联网或自己创作,<br />&nbsp;&nbsp;&nbsp;&nbsp;方便于网友与自己学习交流，如有侵权，请<a href="/message" target="_blank">留言</a>，立即处理]<br /></span><span><span id="statistic-times">loading...</span><script>function createTime(time) {
+                                $(function (){getYiyan();$('#hitokoto').click(function(){getYiyan();})});</script></div></div></div><div class="column-right-shadow is-hidden-widescreen"></div></div><div class="column column-right is-4-tablet is-4-desktop is-3-widescreen is-hidden-touch is-hidden-desktop-only order-3"><div class="card widget"><div class="card-content"><h3 class="menu-label">Latest Comment</h3><span class="body_hot_comment">Loading...Wait a Minute!</span></div></div><div class="card widget"><div class="card-content"><h3 class="menu-label">Recent</h3><article class="media"><div class="media-content size-small"><p><time dateTime="2020-08-05T03:44:37.750Z">2020-08-05</time></p><p class="title is-6"><a class="link-muted" href="/2020/08/05/SELECT%E3%80%81POLL%E3%80%81EPOLL%E7%9A%84%E5%8C%BA%E5%88%AB/">SELECT、POLL、EPOLL的区别</a></p><p class="is-uppercase"></p></div></article><article class="media"><div class="media-content size-small"><p><time dateTime="2020-08-05T03:44:37.750Z">2020-08-05</time></p><p class="title is-6"><a class="link-muted" href="/2020/08/05/%E5%88%B0%E5%BA%95%E4%BB%80%E4%B9%88%E6%98%AF%E2%80%9CIO%20Block%E2%80%9D/">到底什么是“IO Block”</a></p><p class="is-uppercase"></p></div></article><article class="media"><div class="media-content size-small"><p><time dateTime="2020-08-03T06:32:31.854Z">2020-08-03</time></p><p class="title is-6"><a class="link-muted" href="/2020/08/03/%E5%8D%9A%E5%AE%A2%E6%90%AD%E5%BB%BA%E6%97%A5%E5%BF%97/">博客搭建日志</a></p><p class="is-uppercase"></p></div></article><article class="media"><div class="media-content size-small"><p><time dateTime="2020-08-03T06:12:05.429Z">2020-08-03</time></p><p class="title is-6"><a class="link-muted" href="/2020/08/03/Spring%20Boot%E8%87%AA%E5%8A%A8%E9%85%8D%E7%BD%AE%E5%8E%9F%E7%90%86/">Spring Boot自动配置原理</a></p><p class="is-uppercase"></p></div></article></div></div><!--!--><div class="card widget"><div class="card-content"><div class="menu"><h3 class="menu-label">Archives</h3><ul class="menu-list"><li><a class="level is-mobile is-marginless" href="/archives/2020/08/"><span class="level-start"><span class="level-item">August 2020</span></span><span class="level-end"><span class="level-item tag">4</span></span></a></li></ul></div></div></div><!--!--><div class="card widget"><div class="card-content"><div class="menu"><h3 class="menu-label">Subscribe to Updates</h3><form action="https://feedburner.google.com/fb/a/mailverify" method="post" target="popupwindow" onsubmit="window.open(&#039;https://feedburner.google.com/fb/a/mailverify?uri=removeifFeedsId&#039;,&#039;popupwindow&#039;,&#039;scrollbars=yes,width=550,height=520&#039;);return true"><input type="hidden" value="removeifFeedsId" name="uri"><input type="hidden" name="loc" value="en_US"><div class="field has-addons"><div class="control has-icons-left is-expanded"><input class="input" name="email" type="email" placeholder="Email"><span class="icon is-small is-left"><i class="fas fa-envelope"></i></span></div><div class="control"><input class="button is-primary" type="submit" value="Subscribe"></div></div><p class="help">输入邮箱开始订阅，更博后邮件通知！</p></form></div></div></div></div></div></div></section><footer class="footer"><div class="container"><div class="level"><div class="level-start"><a class="footer-logo is-block mb-2" href="/"><img src="/img/logo.png" alt="NOGFEXCEPTION" height="28"></a><p class="size-small"><span>&copy; 2020 Jesse HE</span>  Powered by <a href="https://hexo.io/" target="_blank">Hexo</a> &amp; <a href="https://github.com/ppoffice/hexo-theme-icarus" target="_blank">Icarus</a>,Modify by <a href="https://github.com/removeif/hexo-theme-amazing" target="_blank">removeif</a> <br><span>© 版权说明：[本网站所有内容均收集于互联网或自己创作,<br />&nbsp;&nbsp;&nbsp;&nbsp;方便于网友与自己学习交流，如有侵权，请<a href="/message" target="_blank">留言</a>，立即处理]<br /></span><span><span id="statistic-times">loading...</span><script>function createTime(time) {
             var n = new Date(time);
             now.setTime(now.getTime() + 250),
                 days = (now - n) / 1e3 / 60 / 60 / 24,
