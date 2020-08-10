@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="generator" content="Hexo 4.2.1"><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"><meta><meta name="keywords" content="categories-java"><meta name="description" content="Java,技术分享,后端开发,算法,leetcode"><meta name="author" content="Jesse"><title>浅析spring boot对spring mvc的自动配制原理 - NOGFEXCEPTION</title><meta description="Java,技术分享,后端开发,算法,leetcode"><meta property="og:type" content="article"><meta property="og:title" content="浅析spring boot对spring mvc的自动配制原理"><meta property="og:url" content="http://yoursite.com/2020/08/10/spring%20boot%E5%AF%B9spring%20mvc%E7%9A%84%E8%87%AA%E5%8A%A8%E9%85%8D%E5%88%B6/"><meta property="og:site_name" content="Jesse"><meta property="og:description" content="Java,技术分享,后端开发,算法,leetcode"><meta property="og:locale" content="en_US"><meta property="article:published_time" content="2020-08-10T04:56:08.000Z"><meta property="article:modified_time" content="2020-08-10T08:08:12.458Z"><meta property="article:author" content="Jesse"><meta property="article:tag" content="categories-java"><meta property="twitter:card" content="summary"><meta property="twitter:image" content="http://yoursite.com/img/avatar.png"><script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","mainEntityOfPage":{"@type":"WebPage","@id":"http://yoursite.com/2020/08/10/spring%20boot%E5%AF%B9spring%20mvc%E7%9A%84%E8%87%AA%E5%8A%A8%E9%85%8D%E5%88%B6/"},"headline":"浅析spring boot对spring mvc的自动配制原理","image":["http://yoursite.com/img/avatar.png"],"datePublished":"2020-08-10T04:56:08.000Z","dateModified":"2020-08-10T08:08:12.458Z","author":{"@type":"Person","name":"Jesse"},"description":"Java,技术分享,后端开发,算法,leetcode"}</script><link rel="alternative" href="/atom.xml" title="NOGFEXCEPTION" type="application/atom+xml"><link rel="icon" href="/img/favicon.png"><link rel="stylesheet" href="https://cdnjs.loli.net/ajax/libs/font-awesome/5.12.0/css/all.min.css"><link rel="stylesheet" href="https://fonts.loli.net/css?family=Ubuntu:400,600|Source+Code+Pro|Monda:300,300italic,400,400italic,700,700italic|Roboto Slab:300,300italic,400,400italic,700,700italic|Microsoft YaHei:300,300italic,400,400italic,700,700italic|PT Mono:300,300italic,400,400italic,700,700italic&amp;amp;subset=latin,latin-ext|Inconsolata|Itim|Lobster.css"><link rel="stylesheet" href="https://cdnjs.loli.net/ajax/libs/highlight.js/9.12.0/styles/atom-one-dark.min.css"><style>body>.footer,body>.navbar,body>.section{opacity:0}</style><!--!--><!--!--><script src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" defer></script><link rel="stylesheet" href="https://cdnjs.loli.net/ajax/libs/lightgallery/1.6.12/css/lightgallery.min.css"><link rel="stylesheet" href="https://cdnjs.loli.net/ajax/libs/justifiedGallery/3.7.0/css/justifiedGallery.min.css"><!--!--><!--!--><script src="https://cdnjs.loli.net/ajax/libs/pace/1.0.2/pace.min.js"></script><link rel="stylesheet" href="/css/style.css"><script src="https://cdnjs.loli.net/ajax/libs/jquery/3.3.1/jquery.min.js"></script><script src="/js/globalUtils.js"></script></head><body class="is-3-column has-navbar-fixed-top"><nav class="navbar navbar-main is-fixed-top"><div class="container"><div class="navbar-brand justify-content-center"><a class="navbar-item navbar-logo" href="/"><img src="/img/logo.png" alt="NOGFEXCEPTION" height="28"></a></div><div class="navbar-menu"><div class="navbar-start"><a class="navbar-item" href="/">首页</a><a class="navbar-item" href="/archives">归档</a><a class="navbar-item" href="/categories">分类</a><a class="navbar-item" href="/tags">标签</a><a class="navbar-item" href="/media">影音</a><a class="navbar-item" href="/album">相册</a><a class="navbar-item" href="/friend">友链</a><a class="navbar-item" href="/self-talking">碎碎念</a><a class="navbar-item" href="/message">留言</a><a class="navbar-item" href="/about">关于</a></div><div class="navbar-end"><a class="navbar-item" target="_blank" rel="noopener" title="Download on GitHub" href="https://github.com/herecomesjesse"><i class="fab fa-github"></i></a><a class="navbar-item is-hidden-tablet catalogue" title="Catalogue" href="javascript:;"><i class="fas fa-list-ul"></i></a><a class="navbar-item search" title="Search" href="javascript:;"><i class="fas fa-search"></i></a><a class="navbar-item" id="night-nav" title="Night Mode" href="javascript:;"><i class="fas fa-moon" id="night-icon"></i></a></div></div></div></nav><script type="text/javascript" src="/js/theme-setting.js"></script><section class="section"><div class="container"><div class="columns"><div class="column order-2 column-main is-8-tablet is-8-desktop is-9-widescreen"><div class="card"><article class="card-content article" role="article"><div class="article-meta size-small is-uppercase level is-mobile"><div class="level-left"><i class="far fa-calendar-plus"> </i>2020-08-10  <a class="commentCountImg" href="/2020/08/10/spring%20boot%E5%AF%B9spring%20mvc%E7%9A%84%E8%87%AA%E5%8A%A8%E9%85%8D%E5%88%B6/#comment-container"><span class="display-none-class">48650b5ba5c2da52aef1a5750d525456</span><i class="far fa-comment-dots"></i> <span class="commentCount" id="48650b5ba5c2da52aef1a5750d525456">99+</span>  </a><span class="level-item"><i class="far fa-clock"> </i>11 m  <i class="fas fa-pencil-alt"> </i>1.6 k</span><span class="level-item" id="busuanzi_container_page_pv"><i class="far fa-eye"></i>&nbsp;&nbsp;<span id="busuanzi_value_page_pv">0</span> visits</span></div></div><h1 class="title is-3 is-size-4-mobile">浅析spring boot对spring mvc的自动配制原理</h1><div class="content"><p>```</p>
+<h1 id="浅析spring-boot对spring-mvc的自动配制原理"><a href="#浅析spring-boot对spring-mvc的自动配制原理" class="headerlink" title="浅析spring boot对spring mvc的自动配制原理"></a>浅析spring boot对spring mvc的自动配制原理</h1><p>boot提供了mvc运行所需要的配置，基于上篇关于自动配置类的博客，当然，springboot对于mvc的配置也是通过一个自动配置类 WebMvcAutoConfiguration 去实现的。</p>
+<h4 id="boot对mvc的默认配置："><a href="#boot对mvc的默认配置：" class="headerlink" title="boot对mvc的默认配置："></a>boot对mvc的默认配置：</h4><ol>
+<li><p>配置了ContentNegotiatingViewResolver和BeanNameViewReSolver即视图解析器，根据方法返回值得到视图对象，视图对象决定如何渲染（转发、重定向）</p>
+</li>
+<li><p>组合所有的视图解析器 选择最合适的试图解析器</p>
+</li>
+<li><p>我可们以自己给容器汇总添加一个试图解析器，其会自动地将自定义的视图解析器组合进来。实现ViewResovler接口后，定义自己的视图解析器后，在dispatcherServlet中doDispatch方法中debug，viewResolvers中会包含自己的视图解析器；</p>
+</li>
+<li><p>自动注册了Converter转换器，参数注入类型转换时使用。</p>
+</li>
+<li><p>自动注册了Fomatter格式化器 日期类型等。</p>
+<p>##在WebMvcAutoConfiguration中可以看到@Bean注入了以上内容。</p>
+<p>例如@ConditionalOnProperty(prefix=”spring.mvc”, name=”date-format”) // 当在文件中配置了日期格式化的规则； etc…….</p>
+</li>
+</ol>
+<p><strong>若要添加自己的的格式化器和转换器，只要将对应类型的实现类放在容器中即可，boot会自动扫描对应类型的类</strong></p>
+<p>例如，boot自动配置了HttpMessageConverters  :  mvc用来转换Http请求和相应的； 对象 &lt;–&gt;JSON</p>
+<p>若要实现自己的扩展方法，只需要将自己的HttpMessageConverter注册在容器中即可。</p>
+<p>自动配置了MesageCoderResolver 定义错误代码规则</p>
+<p>自动配置了ConfigurableWebBindInitalizer，从容器中拿（ConfigurableWebBindingInitializer.class)，我们可以配置一个来替换默认的</p>
+<p>boot会默认实现我们自己扩展出的对应类，因为</p>
+<p><strong>getBean方法会从容器中找对应的类，拿不到则调用父类方法，才会用boot的默认。</strong></p>
+<p>所以只要将自定义的放置在容器中即可。</p>
+<h4 id="如何修改springboot的默认配置"><a href="#如何修改springboot的默认配置" class="headerlink" title="如何修改springboot的默认配置"></a>如何修改springboot的默认配置</h4><p>​    1）boot底层相关组件都会有注解@ConditonalOnmissingBean(xxx.class)；如果不存在相关的类，则由boot配置；</p>
+<p>​    boot在自动配置一些组件的时候，先看容器中有没有用户自己配置的@Bean @Component等，如果有，就用用户配置的。如果没有，才自动默认配置。如果有些组件可以有多个，将用户配置的和自己默认的配置组合起来；</p>
+<p>​    2） 如果想保持boot对mvc的配置属性，仅仅想添加一些额外的配置（拦截器，格式化器，控制器等等）（扩展spring mvc） 编写@Configuration类，类型必须是WebMvcConfigurationAdapter，<strong>不能标注@EnableWebMvc；</strong>（原因之后分析）</p>
+<p>// 既保留了springmvc的默认配置，也能用我们扩展的配置；</p>
+<p>public class MyMvcConfig extends WebMvcConfigurationAdapter {</p>
+<p>​    // 可以重写很多实现扩展默认springmvc功能的方法</p>
+<p>​    // ctrl + o打开可重写方法列表</p>
+<p>​    @override</p>
+<p>​    public void addViewControllers(ViewControllerRegistry registry) {</p>
+<p>​        // 效果就是请求/test可以跳转到success.jsp</p>
+<p>​        registry.addViewController(urlPath: “/test”).setViewName(“success”);</p>
+<p>​    } </p>
+<p>}</p>
+<p>实现原理：</p>
+<p>​    1） WebMvcAutoConfiguration是springmvc的自动配置类</p>
+<p>​     WebMvcAutoConfiguration中有个内部静态类，WebMvcAutoConfigurationAdapter extends WebMvcConfigurerAdapter {</p>
+<p>​    // 其中重写了很多扩展配置方法</p>
+<p>}</p>
+<p>​    2）WebMvcAutoConfiguration类上有个注解@Import(EnableWebMvcConfiguraion.class)</p>
+<p>​     EnableWebMvcConfiguraion其中有个方法</p>
+<p>​    pulic void setConfigurers(List<WebMvcConfigurer> configurers) {</p>
+<p>​        if(!CollectionUtils.isEmpty(configurers)) {</p>
+<p>​            this.configurers.addWebMvcConfigurers(configurers);</p>
+<p>​            // 将所有的WebMvcConfigurers相关配置一起调用    </p>
+<p>​        }</p>
+<p>​    }</p>
+<p>// 容器中素有的WebMvcConfigurer都会一起起作用，我们自己的配置类也会被调用；</p>
+<p>效果：springmvc的配置和我们的扩展配置都会起作用；</p>
+<h4 id="为什么不能标注-EnableWebMvc："><a href="#为什么不能标注-EnableWebMvc：" class="headerlink" title="##为什么不能标注@EnableWebMvc："></a>##为什么不能标注@EnableWebMvc：</h4><p>​    如果想完全控制spring mvc，可以添加自己的@Configuration来代替@EnableWebMvc</p>
+<p>#全面接管springmvc： boot对mvc的自动配置不需要了，全部都是我么你的自己配置，在自己的配置类中添加@EnableWebMvc注解后，boot对mvc的自动配置全部失效。</p>
+<p>原理（为什么添加这个注解，自动配置就失效了呢？）</p>
+<p>​    1） @EnableWebMvc的核心：</p>
+<p>​    @Import(DelegatingWebMvcConfigutation.class)</p>
+<p>​    public @interface EnableWebMvc {    }</p>
+<p>​    帮我们导入了一个Delegating extends WebMvcConfigurationSupport.class</p>
+<p>​    2） 而WebMvcAutoConfiguration中有个注解为@ConditionalOnMissingBean(WebMvcConfigurationSupport)</p>
+<p><code>springboot</code>自己的实现是在当前自动配置类生效的时候才通过实现接口<code>WebMvcConfigurer</code>的，所以容器中在当前配置类未执行之前也是没有这个<code>WebMvcConfigurationSupport</code>的，现在我们突然在项目中添加功能的时候去继承了这个类，然后标识为配置类之后，立马在容器中就出现了这个<code>bean</code>，然后<code>springboot</code>就会以为我们要全面接管整合<code>springmvc</code>，我们要抛弃它的默认实现，然后自己玩。然后就悲剧了。现在整个<code>mvc</code>中反而只有我们自己新加的这个扩展空间了。这在绝大多数情况下根本不是我们想要的。</p>
+<p>总而言之一句话，在<code>WebMvcAutoConfiguration</code>这个配置类执行之前，无论是继承<code>WebMvcConfigurationSupport</code>还是在某个配置类上添加了注解<code>@EnableWebMvc</code>，都会导致容器中会被注入类型为<code>WebMvcConfigurationSupport</code>的<code>bean</code>，而<code>springboot</code>在实现自动配置时将这种行为定义成了你要自己去实现。</p>
+<p>总之，boot通过自动配制类的原理，将我们可能用到的组件类都默认配置好，同时也支持自定义和扩展功能。用一句通俗的话去讲自动配置类的原理，就是开启动时会去看当前容器中是否已经存在了用户自定义的一个功能的相关配置类，如果存在则就用用户自己的这个类；如果不存在，再导入boot默认的配置类到容器中。本篇由于水平时间有限，未能做到很细节化的剖析，只对原理做了比较浅显通俗的说明，有兴趣的同学可以继续挖挖源码。</p>
+</div><ul class="post-copyright"><li><strong>Post Title: </strong><a href="http://yoursite.com/2020/08/10/spring boot对spring mvc的自动配制/">浅析spring boot对spring mvc的自动配制原理</a></li><li><strong>Post Author: </strong><a href="http://yoursite.com">Jesse HE</a></li><li><strong>Post Link: </strong><a href="http://yoursite.com/2020/08/10/spring boot对spring mvc的自动配制/">http://yoursite.com/2020/08/10/spring boot对spring mvc的自动配制/</a></li><li><strong>Copyright Notice: </strong><span>All articles in this blog are licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" rel="external nofollow" target="_blank">CC BY-NC-SA 4.0</a> unless stating additionally.</span></li></ul><div><div class="recommend-post"><span class="is-size-6 has-text-grey has-mr-7"># Related Post</span><br><span>  1.<a class="is-size-6" href="/2020/08/01/SELECT%E3%80%81POLL%E3%80%81EPOLL%E7%9A%84%E5%8C%BA%E5%88%AB/" target="_blank">SELECT、POLL、EPOLL的区别</a><br></span><span>  2.<a class="is-size-6" href="/2020/08/01/Spring%20Boot%E8%87%AA%E5%8A%A8%E9%85%8D%E7%BD%AE%E5%8E%9F%E7%90%86/" target="_blank">Spring Boot自动配置原理</a><br></span></div><div class="recommend-post"><span class="is-size-6 has-text-grey has-mr-7"># Recommend Post</span><br><span>  1.<a class="is-size-6" href="/2020/08/10/%E5%8D%9A%E5%AE%A2%E6%90%AD%E5%BB%BA%E6%97%A5%E5%BF%97/" target="_blank">NOGFEXCEPTION搭建日志</a><br></span><span>  2.<a class="is-size-6" href="/2020/08/01/SELECT%E3%80%81POLL%E3%80%81EPOLL%E7%9A%84%E5%8C%BA%E5%88%AB/" target="_blank">SELECT、POLL、EPOLL的区别</a><br></span><span>  3.<a class="is-size-6" href="/2020/08/01/%E5%88%B0%E5%BA%95%E4%BB%80%E4%B9%88%E6%98%AF%E2%80%9CIO%20Block%E2%80%9D/" target="_blank">BIO和NIO详解</a><br></span><span>  4.<a class="is-size-6" href="/2020/08/01/Spring%20Boot%E8%87%AA%E5%8A%A8%E9%85%8D%E7%BD%AE%E5%8E%9F%E7%90%86/" target="_blank">Spring Boot自动配置原理</a><br></span><span>  5.<a class="is-size-6" href="/2020/08/10/spring%20boot%E5%AF%B9spring%20mvc%E7%9A%84%E8%87%AA%E5%8A%A8%E9%85%8D%E5%88%B6/" target="_blank">浅析spring boot对spring mvc的自动配制原理</a><br></span></div></div><link rel="stylesheet" href="https://cdnjs.loli.net/ajax/libs/social-share.js/1.0.16/css/share.min.css"><div class="social-share"></div><script src="https://cdnjs.loli.net/ajax/libs/social-share.js/1.0.16/js/social-share.min.js"></script></article></div><div class="card"><div class="card-content"><h3 class="menu-label has-text-centered">Like this article? Support the author with</h3><div class="buttons is-centered"><a class="button is-info donate"><span class="icon is-small"><i class="fab fa-alipay"></i></span><span>Alipay</span><span class="qrcode"><img src="##" alt="Alipay"></span></a><a class="button is-success donate"><span class="icon is-small"><i class="fab fa-weixin"></i></span><span>Wechat</span><span class="qrcode"><img src="##" alt="Wechat"></span></a></div></div></div><nav class="post-navigation mt-4 level is-mobile"><div class="level-end"><a class="article-nav-next level level-item link-muted" href="/2020/08/10/%E5%8D%9A%E5%AE%A2%E6%90%AD%E5%BB%BA%E6%97%A5%E5%BF%97/"><span class="level-item">NOGFEXCEPTION搭建日志</span><i class="level-item fas fa-chevron-right"></i></a></div></nav><div class="card"><div class="card-content"><div class="title is-5">Comments</div><div id="comment-container"></div><link rel="stylesheet" href="https://cdnjs.loli.net/ajax/libs/gitalk/1.6.0/gitalk.css"><script> $.getScript('/js/gitalk.min.js', function () { 
+            var gitalk = new Gitalk({
+            language:'zh-CN',
+            id: '48650b5ba5c2da52aef1a5750d525456',
+            repo: 'blogtalk',
+            owner: 'HereComesJesse',
+            clientID: 'bf7e6985b0decf1395cd',
+            clientSecret: 'd992e46567c857fa15b86584d049ccfc46417930',
+            admin: ["HereComesJesse"],
+            createIssueManually: true,
+            distractionFreeMode: false,
+            perPage: 10,
+            pagerDirection: 'last',
+            
+            
+            enableHotKey: true,
+            isLocked: false
+        })
+        gitalk.render('comment-container')});</script></div></div></div><div class="column column-left is-4-tablet is-4-desktop is-4-widescreen  order-1 is-sticky"><div class="card widget toc-scroll" id="toc"><div class="card-content"><div class="menu"><h3 class="menu-label">Catalogue</h3><ul class="menu-list toc"><li><a class="is-flex toc-item" id="toc-item-浅析spring-boot对spring-mvc的自动配制原理" href="#浅析spring-boot对spring-mvc的自动配制原理"><span>浅析spring boot对spring mvc的自动配制原理</span></a><ul class="menu-list toc"><ul class="menu-list toc"><li><a class="is-flex toc-item" id="toc-item-为什么不能标注-EnableWebMvc：" href="#为什么不能标注-EnableWebMvc："><span>##为什么不能标注@EnableWebMvc：</span></a></li></ul></ul></li></ul></div></div><script type="text/javascript" async>
+        $(document).ready(function () { //参考自 https://github.com/ppoffice/hexo-theme-icarus/pull/616/files
+            var observerTopMargin;
+            var scrollObserver;
+            var headerElems = $(".headerlink");
+            var activeTocItem;
+        
+            function initIntersectionObserver(docHeight) {
+                observerTopMargin = docHeight;
+                scrollObserver = new IntersectionObserver(scrollCallBack,
+                    {
+                        root: null,  // viewpoint
+                        rootMargin: docHeight + "px 0px -80% 0px"  // cover top 30% of viewport to the top of document
+                    })
+            }
+        
+            function scrollCallBack(entries, observer) {
+                if ($(window).scrollTop() > observerTopMargin * 0.7) { 
+                    // User somehow scroll to 70% of observerTopMargin (which is inited as 200% document height)
+                    // Observer top margin need to extend to cover all the space to the top of the document
+                    initIntersectionObserver(observerTopMargin * 2)
+                    observer.disconnect();
+                    return;
+                }
+                let toActive;
+                if (entries[0].intersectionRatio == 1) {  // enter viewed area
+                    let entry = entries.reduce((u, v) => (u.target.toc_id > v.target.toc_id ? u : v));  // get the lowest item
+                    toActive = $("#toc-item-" + $(entry.target).attr("href").substr(1));
+                } else {
+                    let entry = entries.reduce((u, v) => (u.target.toc_id < v.target.toc_id ? u : v));  // get the highest item
+                    let idx = Math.max(entry.target.toc_id - 1, 0);
+                    toActive = $("#toc-item-" + $(headerElems[idx]).attr("href").substr(1));
+                }
+                if (activeTocItem) activeTocItem.removeClass("is-current");
+                activeTocItem = toActive
+                activeTocItem.addClass("is-current");
+            }
+        
+            initIntersectionObserver($(document).height() * 2);
+            headerElems.each(function (index, obj) {
+                obj.toc_id = index;
+                scrollObserver.observe(obj);
+            })
+        });</script></div><div class="card widget"><div class="card-content"><nav class="level"><div class="level-item has-text-centered flex-shrink-1"><div><figure class="image is-128x128 mx-auto mb-2"><img class="is-rounded" src="/img/avatar.png" alt="Jesse HE"></figure><p class="title is-size-4 is-block line-height-inherit">Jesse HE</p><p class="is-size-6 is-block">一切有为法，如梦幻泡影</p><p class="is-size-6 is-flex justify-content-center"><i class="fas fa-map-marker-alt mr-1"></i><span>上海市</span></p></div></div></nav><nav class="level is-mobile"><div class="level-item has-text-centered is-marginless"><div><p class="heading">Posts</p><a href="/archives"><p class="title">5</p></a></div></div><div class="level-item has-text-centered is-marginless"><div><p class="heading">Categories</p><a href="/categories"><p class="title">3</p></a></div></div><div class="level-item has-text-centered is-marginless"><div><p class="heading">Tags</p><a href="/tags"><p class="title">3</p></a></div></div></nav><div class="level"><a class="level-item button is-primary is-rounded" href="https://weibo.com/comeOnJJ666" target="_blank" rel="noopener">Follow</a></div><div class="level is-mobile"><a class="level-item button is-transparent is-white is-marginless" target="_blank" rel="noopener" title="Github" href="https://github.com/herecomesjesse"><i class="fab fa-github"></i></a><a class="level-item button is-transparent is-white is-marginless" target="_blank" rel="noopener" title="Weibo" href="https://weibo.com/comeOnJJ666"><i class="fab fa-weibo"></i></a><a class="level-item button is-transparent is-white is-marginless" target="_blank" rel="noopener" title="Email" href="mailto:jesse_he06@163.com"><i class="fa fa-envelope"></i></a><a class="level-item button is-transparent is-white is-marginless" target="_blank" rel="noopener" title="Next" href="##"><i class="fab fa-dribbble"></i></a><a class="level-item button is-transparent is-white is-marginless" target="_blank" rel="noopener" title="RSS" href="/atom.xml"><i class="fas fa-rss"></i></a></div><div><hr><p id="hitokoto">:D 一言句子获取中...</p><script type="text/javascript" defer>function getYiyan(){
+                                $.getJSON("https://v1.hitokoto.cn/", function (data) {
+                                if(data){
+                                    $('#hitokoto').html("");
+                                    $('#hitokoto').append("<strong style='color: #3273dc;'>"+data.hitokoto+"</strong>"+
+                                    "<p>"+"From《"+data.from+"》</p><p>Provider-"+data.creator+"</p>");
+                                }});}
+                                $(function (){getYiyan();$('#hitokoto').click(function(){getYiyan();})});</script></div></div></div><div class="card widget"><div class="card-content"><h3 class="menu-label">Latest Comment</h3><span class="body_hot_comment">Loading...Wait a Minute!</span></div></div><div class="card widget"><div class="card-content"><h3 class="menu-label">Recent</h3><article class="media"><div class="media-content size-small"><p><time dateTime="2020-08-10T04:56:08.000Z">2020-08-10</time></p><p class="title is-6"><a class="link-muted" href="/2020/08/10/spring%20boot%E5%AF%B9spring%20mvc%E7%9A%84%E8%87%AA%E5%8A%A8%E9%85%8D%E5%88%B6/">浅析spring boot对spring mvc的自动配制原理</a></p><p class="is-uppercase"><i class="fas fa-folder-open has-text-grey"> </i><a class="link-muted" href="/categories/Java/">Java</a> / <a class="link-muted" href="/categories/Java/Spring/">Spring</a></p></div></article><article class="media"><div class="media-content size-small"><p><time dateTime="2020-08-10T03:56:08.000Z">2020-08-10</time></p><p class="title is-6"><a class="link-muted" href="/2020/08/10/%E5%8D%9A%E5%AE%A2%E6%90%AD%E5%BB%BA%E6%97%A5%E5%BF%97/">NOGFEXCEPTION搭建日志</a></p><p class="is-uppercase"><i class="fas fa-folder-open has-text-grey"> </i><a class="link-muted" href="/categories/Normal/">Normal</a></p></div></article><article class="media"><div class="media-content size-small"><p><time dateTime="2020-08-01T03:56:08.000Z">2020-08-01</time></p><p class="title is-6"><a class="link-muted" href="/2020/08/01/SELECT%E3%80%81POLL%E3%80%81EPOLL%E7%9A%84%E5%8C%BA%E5%88%AB/">SELECT、POLL、EPOLL的区别</a></p><p class="is-uppercase"><i class="fas fa-folder-open has-text-grey"> </i><a class="link-muted" href="/categories/Java/">Java</a> / <a class="link-muted" href="/categories/Java/Spring/">Spring</a></p></div></article><article class="media"><div class="media-content size-small"><p><time dateTime="2020-08-01T03:56:08.000Z">2020-08-01</time></p><p class="title is-6"><a class="link-muted" href="/2020/08/01/%E5%88%B0%E5%BA%95%E4%BB%80%E4%B9%88%E6%98%AF%E2%80%9CIO%20Block%E2%80%9D/">BIO和NIO详解</a></p><p class="is-uppercase"><i class="fas fa-folder-open has-text-grey"> </i><a class="link-muted" href="/categories/Java/">Java</a></p></div></article><article class="media"><div class="media-content size-small"><p><time dateTime="2020-08-01T03:56:08.000Z">2020-08-01</time></p><p class="title is-6"><a class="link-muted" href="/2020/08/01/Spring%20Boot%E8%87%AA%E5%8A%A8%E9%85%8D%E7%BD%AE%E5%8E%9F%E7%90%86/">Spring Boot自动配置原理</a></p><p class="is-uppercase"><i class="fas fa-folder-open has-text-grey"> </i><a class="link-muted" href="/categories/Java/">Java</a> / <a class="link-muted" href="/categories/Java/Spring/">Spring</a></p></div></article></div></div><div class="card widget"><div class="card-content"><div class="menu"><h3 class="menu-label">Categories</h3><ul class="menu-list"><li><a class="level is-mobile is-marginless" href="/categories/Java/"><span class="level-start"><span class="level-item">Java</span></span><span class="level-end"><span class="level-item tag">4</span></span></a><ul class="mr-0"><li><a class="level is-mobile is-marginless" href="/categories/Java/Spring/"><span class="level-start"><span class="level-item">Spring</span></span><span class="level-end"><span class="level-item tag">3</span></span></a></li></ul></li><li><a class="level is-mobile is-marginless" href="/categories/Normal/"><span class="level-start"><span class="level-item">Normal</span></span><span class="level-end"><span class="level-item tag">1</span></span></a></li></ul></div></div></div><div class="card widget"><div class="card-content"><div class="menu"><h3 class="menu-label">Archives</h3><ul class="menu-list"><li><a class="level is-mobile is-marginless" href="/archives/2020/08/"><span class="level-start"><span class="level-item">August 2020</span></span><span class="level-end"><span class="level-item tag">5</span></span></a></li></ul></div></div></div><div class="card widget"><div class="card-content"><div class="menu"><h3 class="menu-label">Tags</h3><div class="field is-grouped is-grouped-multiline"><div class="control"><a class="tags has-addons" href="/tags/Spring/"><span class="tag">Spring</span><span class="tag is-grey-lightest">3</span></a></div><div class="control"><a class="tags has-addons" href="/tags/Java/"><span class="tag">Java</span><span class="tag is-grey-lightest">1</span></a></div><div class="control"><a class="tags has-addons" href="/tags/Normal/"><span class="tag">Normal</span><span class="tag is-grey-lightest">1</span></a></div></div></div></div></div><div class="card widget"><div class="card-content"><div class="menu"><h3 class="menu-label">Subscribe to Updates</h3><form action="https://feedburner.google.com/fb/a/mailverify" method="post" target="popupwindow" onsubmit="window.open(&#039;https://feedburner.google.com/fb/a/mailverify?uri=removeifFeedsId&#039;,&#039;popupwindow&#039;,&#039;scrollbars=yes,width=550,height=520&#039;);return true"><input type="hidden" value="removeifFeedsId" name="uri"><input type="hidden" name="loc" value="en_US"><div class="field has-addons"><div class="control has-icons-left is-expanded"><input class="input" name="email" type="email" placeholder="Email"><span class="icon is-small is-left"><i class="fas fa-envelope"></i></span></div><div class="control"><input class="button is-primary" type="submit" value="Subscribe"></div></div><p class="help">输入邮箱开始订阅，更博后邮件通知！</p></form></div></div></div></div></div></div></section><footer class="footer"><div class="container"><div class="level"><div class="level-start"><a class="footer-logo is-block mb-2" href="/"><img src="/img/logo.png" alt="NOGFEXCEPTION" height="28"></a><p class="size-small"><span>&copy; 2020 Jesse HE</span>  Powered by <a href="https://hexo.io/" target="_blank">Hexo</a> &amp; <a href="https://github.com/ppoffice/hexo-theme-icarus" target="_blank">Icarus</a>,Modify by <a href="https://github.com/removeif/hexo-theme-amazing" target="_blank">removeif</a> <br><span>© 版权说明：[本网站所有内容均收集于互联网或自己创作,<br />&nbsp;&nbsp;&nbsp;&nbsp;方便于网友与自己学习交流，如有侵权，请<a href="/message" target="_blank">留言</a>，立即处理]<br /></span><span><span id="statistic-times">loading...</span><script>function createTime(time) {
+            var n = new Date(time);
+            now.setTime(now.getTime() + 250),
+                days = (now - n) / 1e3 / 60 / 60 / 24,
+                dnum = Math.floor(days),
+                hours = (now - n) / 1e3 / 60 / 60 - 24 * dnum,
+                hnum = Math.floor(hours),
+            1 == String(hnum).length && (hnum = "0" + hnum),
+                minutes = (now - n) / 1e3 / 60 - 1440 * dnum - 60 * hnum,
+                mnum = Math.floor(minutes),
+            1 == String(mnum).length && (mnum = "0" + mnum),
+                seconds = (now - n) / 1e3 - 86400 * dnum - 3600 * hnum - 60 * mnum,
+                snum = Math.round(seconds),
+            1 == String(snum).length && (snum = "0" + snum),
+                document.getElementById("statistic-times").innerHTML = "❤️Site from <strong>"+time.split(" ")[0].replace(/\//g,".")+"</strong> has existed <strong>" + dnum + "</strong> d <strong>" + hnum + "</strong> h <strong>" + mnum + "</strong> m <strong>" + snum + "</strong> s！❤️";
+        }var now = new Date();setInterval("createTime('2020/08/01 00:00:00')", 250,"");</script><br></span><div class="size-small"><span>❤️Thx <strong><span id="busuanzi_value_site_uv">99+</span></strong> users <strong><span id="busuanzi_value_site_pv">99+</span></strong> visited！❤️</span></div></p></div><div class="level-end"><div class="field has-addons"><p class="control"><a class="button is-transparent is-large" target="_blank" rel="noopener" title="Creative Commons" href="https://creativecommons.org/"><i class="fab fa-creative-commons"></i></a></p><p class="control"><a class="button is-transparent is-large" target="_blank" rel="noopener" title="Attribution 4.0 International" href="https://creativecommons.org/licenses/by/4.0/"><i class="fab fa-creative-commons-by"></i></a></p><p class="control"><a class="button is-transparent is-large" target="_blank" rel="noopener" title="Download on GitHub" href="https://github.com/removeif"><i class="fab fa-github"></i></a></p></div><div class="sideMusic"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aplayer/dist/APlayer.min.css"><script src="/js/APlayer.min.js"></script><script src="https://cdn.jsdelivr.net/npm/meting@2/dist/Meting.min.js"></script><meting-js style="width: auto;height: 2000px;" server="netease" type="playlist" id="2364053447" theme="#2980b9" loop="all" autoplay="false" order="list" storageName="aplayer-setting" lrctype="0" list-max-height="400px" fixed="true"></meting-js></div></div></div></div></footer><script src="https://cdnjs.loli.net/ajax/libs/moment.js/2.22.2/moment-with-locales.min.js"></script><script>moment.locale("en");</script><script>var IcarusThemeSettings = {
+            site: {
+                url: 'http://yoursite.com',
+                external_link: {"enable":true,"exclude":[]}
+            },
+            article: {
+                highlight: {
+                    clipboard: true,
+                    fold: 'folded'
+                }
+            }
+        };</script><script src="https://cdnjs.loli.net/ajax/libs/clipboard.js/2.0.4/clipboard.min.js" defer></script><script src="/js/animation.js"></script><a id="back-to-top" title="Back to Top" href="javascript:;"><i class="fas fa-chevron-up"></i></a><script src="/js/back-to-top.js" defer></script><!--!--><!--!--><script src="https://cdnjs.loli.net/ajax/libs/lightgallery/1.6.12/js/lightgallery-all.min.js" defer></script><script src="https://cdnjs.loli.net/ajax/libs/justifiedGallery/3.7.0/js/jquery.justifiedGallery.min.js" defer></script><!--!--><!--!--><!--!--><script src="/js/toc.js" defer></script><script src="/js/main.js" defer></script><script>$.getScript('/js/comment-issue-data.js',function(){loadIssueData('bf7e6985b0decf1395cd','d992e46567c857fa15b86584d049ccfc46417930','HereComesJesse','blogtalk',false);})</script><link rel="stylesheet" href="/css/insight.css"><div class="searchbox ins-search"><div class="searchbox-container ins-search-container"><div class="searchbox-input-wrapper"><input class="searchbox-input ins-search-input" type="text" placeholder="Type something..."><span class="searchbox-close ins-close ins-selectable"><i class="fa fa-times-circle"></i></span></div><div class="searchbox-result-wrapper ins-section-wrapper"><div class="ins-section-container"></div></div></div></div><script>(function (window) {
+            var INSIGHT_CONFIG = {
+                TRANSLATION: {
+                    POSTS: 'Posts',
+                    PAGES: 'Pages',
+                    CATEGORIES: 'Categories',
+                    TAGS: 'Tags',
+                    UNTITLED: '(Untitled)',
+                },
+                CONTENT_URL: '/content.json',
+            };
+            window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+        })(window);</script><script src="/js/insight.js" defer></script></body></html>
